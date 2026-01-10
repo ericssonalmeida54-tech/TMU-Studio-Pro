@@ -1,0 +1,7 @@
+{
+  "name": "Copy of TMU Studio Pro",
+  "description": "Professional MTM-1 Calculation Studio with AI assistance, advanced reporting, and visual analysis tools.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
