@@ -5,7 +5,8 @@ import {
   LogOut, Minimize2, RotateCw, ArrowDownToLine, Eye, Footprints, 
   X, Bot, PlusCircle, HelpCircle, Printer, DollarSign, 
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp, 
-  ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon
+  ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
+  MonitorPlay
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -13,7 +14,8 @@ import {
 } from 'recharts';
 import { GoogleGenAI } from "@google/genai";
 import { parseCode, REACH_BASE, MOVE_BASE, STAT, POS_DATA, TURN_DATA, DIS_DATA } from './utils/mtmLogic';
-import type { Study, Motion } from './types';
+import type { Study, Motion } from './types/types';
+import { Simulation } from './components/Simulation';
 
 // --- Components ---
 
@@ -501,7 +503,7 @@ const MTMReferenceTable = () => {
 };
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'editor'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'editor' | 'simulation'>('dashboard');
   const [studies, setStudies] = useState<Study[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -563,9 +565,10 @@ export default function App() {
     }
   };
 
-  const handleSaveEditor = () => {
-    if (!editorData || !currentId) return;
-    const updated = { ...editorData, updatedAt: Date.now() };
+  const handleSaveEditor = (dataToSave?: Study) => {
+    const data = dataToSave || editorData;
+    if (!data || !currentId) return;
+    const updated = { ...data, updatedAt: Date.now() };
     setStudies(prev => prev.map(s => s.id === currentId ? updated : s));
   };
 
@@ -751,6 +754,7 @@ export default function App() {
                 setData={setEditorData} 
                 onSave={handleSaveEditor} 
                 onBack={() => setView('dashboard')}
+                onOpenSimulation={() => setView('simulation')}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 wizardOpen={wizardOpen}
@@ -760,13 +764,24 @@ export default function App() {
                 onPrint={() => window.print()}
             />
         )}
+
+        {view === 'simulation' && editorData && (
+            <Simulation
+                study={editorData}
+                onUpdateStudy={(updated) => {
+                    setEditorData(updated);
+                    handleSaveEditor(updated);
+                }}
+                onBack={() => setView('editor')}
+            />
+        )}
     </div>
   );
 }
 
 // --- Editor Components ---
 
-function Editor({ data, setData, onSave, onBack, activeTab, setActiveTab, wizardOpen, setWizardOpen, aiModalOpen, setAiModalOpen, onPrint }: any) {
+function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, setActiveTab, wizardOpen, setWizardOpen, aiModalOpen, setAiModalOpen, onPrint }: any) {
     useEffect(() => {
         const t = setTimeout(() => { onSave(); }, 1000);
         return () => clearTimeout(t);
@@ -826,6 +841,9 @@ function Editor({ data, setData, onSave, onBack, activeTab, setActiveTab, wizard
                 <div className="flex gap-2 shrink-0">
                     <button onClick={onPrint} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors">
                         <Printer size={16}/> <span className="hidden sm:inline">Imprimir</span>
+                    </button>
+                    <button onClick={onOpenSimulation} className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors shadow-lg shadow-purple-500/20">
+                        <MonitorPlay size={16}/> <span className="hidden sm:inline">Simular</span>
                     </button>
                     <button onClick={() => setActiveTab('results')} className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors">
                         <Calculator size={16}/> <span className="hidden sm:inline">Resultados</span>
