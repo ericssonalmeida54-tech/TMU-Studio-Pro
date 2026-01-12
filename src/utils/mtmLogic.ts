@@ -90,43 +90,43 @@ export const DIS_DATA: any = {
 
 export const STAT: Record<string, { t: number, d: string }> = {
   // Grasp
-  "G1A": { t: 2.0, d: "Pick up easy object" },
-  "G1B": { t: 3.5, d: "Pick up very small object" },
-  "G1C1": { t: 7.3, d: "Interference > 12mm" },
-  "G1C2": { t: 8.7, d: "Interference 6-12mm" },
-  "G1C3": { t: 10.8, d: "Interference < 6mm" },
-  "G2": { t: 5.6, d: "Regrasp" },
-  "G3": { t: 5.6, d: "Transfer grasp" },
-  "G4A": { t: 7.3, d: "Select > 25mm" },
-  "G4B": { t: 9.1, d: "Select 6-25mm" },
-  "G4C": { t: 12.9, d: "Select < 6mm" },
-  "G5": { t: 0.0, d: "Contact grasp" },
+  "G1A": { t: 2.0, d: "Pegar objeto fácil" },
+  "G1B": { t: 3.5, d: "Pegar obj muito pequeno" },
+  "G1C1": { t: 7.3, d: "Interferência > 12mm" },
+  "G1C2": { t: 8.7, d: "Interferência 6-12mm" },
+  "G1C3": { t: 10.8, d: "Interferência < 6mm" },
+  "G2": { t: 5.6, d: "Repegar" },
+  "G3": { t: 5.6, d: "Transferência de pega" },
+  "G4A": { t: 7.3, d: "Selecionar > 25mm" },
+  "G4B": { t: 9.1, d: "Selecionar 6-25mm" },
+  "G4C": { t: 12.9, d: "Selecionar < 6mm" },
+  "G5": { t: 0.0, d: "Tocar/Contato" },
   // Release
-  "RL1": { t: 2.0, d: "Normal release" },
-  "RL2": { t: 0.0, d: "Contact release" },
+  "RL1": { t: 2.0, d: "Soltar normal" },
+  "RL2": { t: 0.0, d: "Soltar contato" },
   // Apply Pressure
-  "APA": { t: 10.6, d: "Apply Pressure (Simple)" },
-  "APB": { t: 16.2, d: "Apply Pressure (Complex)" },
+  "APA": { t: 10.6, d: "Fazer Força (Simples)" },
+  "APB": { t: 16.2, d: "Fazer Força (Complexo)" },
   // Eye
-  "ET": { t: 15.2, d: "Eye Travel" },
-  "EF": { t: 7.3, d: "Eye Focus" },
+  "ET": { t: 15.2, d: "Mover Olhar" },
+  "EF": { t: 7.3, d: "Focar Olhar" },
   // Body
-  "W-P": { t: 15.0, d: "Walk per pace" },
-  "W-PO": { t: 17.0, d: "Walk obstructed" },
-  "SIT": { t: 34.7, d: "Sit" },
-  "STD": { t: 43.4, d: "Stand" },
-  "B": { t: 29.0, d: "Bend" },
-  "S": { t: 29.0, d: "Stoop" },
-  "KOK": { t: 29.0, d: "Kneel on One Knee" },
-  "AB": { t: 31.9, d: "Arise from Bend" },
-  "AS": { t: 31.9, d: "Arise from Stoop" },
-  "AKOK": { t: 31.9, d: "Arise from KOK" },
-  "KBK": { t: 69.4, d: "Kneel Both Knees" },
-  "AKBK": { t: 76.7, d: "Arise from KBK" },
-  "TBC1": { t: 18.6, d: "Turn Body Case 1" },
-  "TBC2": { t: 37.2, d: "Turn Body Case 2" },
-  "FM": { t: 8.5, d: "Foot Motion" },
-  "FMP": { t: 19.1, d: "Foot Motion w/ Pressure" }
+  "W-P": { t: 15.0, d: "Andar (passo)" },
+  "W-PO": { t: 17.0, d: "Andar (obstruído)" },
+  "SIT": { t: 34.7, d: "Sentar" },
+  "STD": { t: 43.4, d: "Levantar" },
+  "B": { t: 29.0, d: "Curvar" },
+  "S": { t: 29.0, d: "Agachar" },
+  "KOK": { t: 29.0, d: "Ajoelhar (1 joelho)" },
+  "AB": { t: 31.9, d: "Levantar (Curvar)" },
+  "AS": { t: 31.9, d: "Levantar (Agachar)" },
+  "AKOK": { t: 31.9, d: "Levantar (1 joelho)" },
+  "KBK": { t: 69.4, d: "Ajoelhar (2 joelhos)" },
+  "AKBK": { t: 76.7, d: "Levantar (2 joelhos)" },
+  "TBC1": { t: 18.6, d: "Girar Corpo 1" },
+  "TBC2": { t: 37.2, d: "Girar Corpo 2" },
+  "FM": { t: 8.5, d: "Mover Pé" },
+  "FMP": { t: 19.1, d: "Mover Pé c/ Pressão" }
 };
 
 // --- Parser Logic ---
@@ -153,7 +153,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
         return {
             v: true,
             t: REACH_BASE[d][idx],
-            d: `Reach ${dist}cm (${type})`
+            d: `Alcançar ${dist}cm (${type})`
         };
     }
   }
@@ -174,7 +174,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
         return {
             v: true,
             t: MOVE_BASE[d][idx],
-            d: `Move ${dist}cm (${type})`
+            d: `Mover ${dist}cm (${type})`
         };
     }
   }
@@ -193,7 +193,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
           if (w === 'M') idx = 1;
           else if (w === 'L') idx = 2;
 
-          return { v: true, t: TURN_DATA[d][idx], d: `Turn ${deg}° (${w})` };
+          return { v: true, t: TURN_DATA[d][idx], d: `Girar ${deg}° (${w})` };
       }
   }
 
@@ -206,7 +206,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
           const hand = match[3] || 'E';
           const val = POS_DATA[key];
           if (val) {
-              return { v: true, t: val[hand], d: `Position ${match[1]} ${match[2]} (${hand})` };
+              return { v: true, t: val[hand], d: `Posicionar ${match[1]} ${match[2]} (${hand})` };
           }
       }
   }
@@ -219,7 +219,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
           const hand = match[2] || 'E';
           const val = DIS_DATA[cls];
           if (val) {
-              return { v: true, t: val[hand], d: `Disengage ${cls} (${hand})` };
+              return { v: true, t: val[hand], d: `Separar ${cls} (${hand})` };
           }
       }
   }
@@ -233,7 +233,7 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
           const key = `W${type}`;
           const oneStep = STAT[key];
           if (oneStep) {
-              return { v: true, t: oneStep.t * steps, d: `Walk ${steps} paces`, type: 'body' };
+              return { v: true, t: oneStep.t * steps, d: `Andar ${steps} passos`, type: 'body' };
           }
       }
   }
@@ -243,5 +243,5 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
       return { v: true, t: STAT[c].t, d: STAT[c].d, type: c.match(/^(G|RL|AP|E)/) ? undefined : 'body' };
   }
 
-  return { v: false, t: 0, d: "Invalid code" };
+  return { v: false, t: 0, d: "Código Inválido" };
 };

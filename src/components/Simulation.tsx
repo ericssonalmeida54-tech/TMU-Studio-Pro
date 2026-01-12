@@ -29,6 +29,7 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [progress, setProgress] = useState(0); // 0 to 100
   const [currentMotionIndex, setCurrentMotionIndex] = useState(0);
+  const [showStepControls, setShowStepControls] = useState(false);
 
   useEffect(() => {
     // Initialize scenarios
@@ -103,6 +104,27 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
     setIsPlaying(false);
     setProgress(0);
     setCurrentMotionIndex(0);
+  };
+
+  const handleStep = (direction: 'next' | 'prev') => {
+    setIsPlaying(false);
+    const activeScenario = scenarios.find(s => s.id === activeScenarioId);
+    if (!activeScenario) return;
+
+    let newIndex = direction === 'next' ? currentMotionIndex + 1 : currentMotionIndex - 1;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= activeScenario.motions.length) newIndex = activeScenario.motions.length - 1;
+
+    setCurrentMotionIndex(newIndex);
+
+    // Calculate progress for this index
+    const totalTMU = activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0);
+    let accumTMU = 0;
+    for (let i = 0; i < newIndex; i++) {
+        accumTMU += activeScenario.motions[i].tmu * (activeScenario.motions[i].freq || 1);
+    }
+    const newProgress = (accumTMU / totalTMU) * 100;
+    setProgress(newProgress);
   };
 
   const calcTMU = (motions: Motion[]) => motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0);
@@ -227,7 +249,7 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
                                   <div className="flex flex-col gap-1">
                                       <label className="text-[10px] font-bold uppercase text-slate-400">Velocidade</label>
                                       <div className="flex bg-slate-100 rounded-lg p-1">
-                                          {[1, 2, 5].map(s => (
+                                          {[0.25, 0.5, 1, 2].map(s => (
                                               <button
                                                 key={s}
                                                 onClick={() => setPlaybackSpeed(s)}
@@ -238,6 +260,11 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
                                           ))}
                                       </div>
                                   </div>
+
+                                  <div className="flex gap-2">
+                                      <button onClick={() => handleStep('prev')} className="p-2 bg-slate-100 rounded hover:bg-slate-200 text-slate-500 font-bold text-xs">Ant</button>
+                                      <button onClick={() => handleStep('next')} className="p-2 bg-slate-100 rounded hover:bg-slate-200 text-slate-500 font-bold text-xs">Próx</button>
+                                  </div>
                               </div>
 
                               {/* Current Action Display */}
@@ -247,8 +274,13 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
                                           <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0 ${activeScenario.motions[currentMotionIndex].hand === 'E' ? 'bg-blue-500' : activeScenario.motions[currentMotionIndex].hand === 'D' ? 'bg-red-500' : 'bg-slate-500'}`}>
                                               {currentMotionIndex + 1}
                                           </div>
-                                          <div>
-                                              <span className="block text-xs font-bold text-slate-400 uppercase mb-1">Executando Agora</span>
+                                          <div className="flex-1">
+                                              <div className="flex justify-between items-start">
+                                                  <span className="block text-xs font-bold text-slate-400 uppercase mb-1">Executando Agora</span>
+                                                  <span className="text-[10px] font-bold text-slate-400">
+                                                      {(progress / 100 * activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0)).toFixed(1)} / {activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0).toFixed(1)} TMU
+                                                  </span>
+                                              </div>
                                               <h4 className="font-bold text-slate-800 text-lg leading-tight">{activeScenario.motions[currentMotionIndex].desc}</h4>
                                               <div className="flex gap-2 mt-1">
                                                   <span className="text-xs font-mono bg-white border px-1 rounded text-slate-500">{activeScenario.motions[currentMotionIndex].code}</span>

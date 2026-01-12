@@ -882,6 +882,25 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                     </div>
                 </div>
 
+                <div className="grid grid-cols-4 gap-4 mb-8">
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Redução de Tempo</p>
+                        <p className="text-lg font-bold text-slate-800">{(curMin - proMin).toFixed(4)} min</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Horas Ganhas/Ano</p>
+                        <p className="text-lg font-bold text-slate-800">{((curMin - proMin) * data.roi.volume * (data.roi.daysPerMonth || 22) * 12 / 60).toFixed(1)} h</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Aumento Produção</p>
+                        <p className="text-lg font-bold text-slate-800">{proMin > 0 ? (((curMin - proMin) / proMin) * 100).toFixed(1) : 0}%</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Peças/Hora (Novo)</p>
+                        <p className="text-lg font-bold text-slate-800">{proMin > 0 ? (60/proMin).toFixed(0) : 0}</p>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-8 mb-8">
                     <div>
                         <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Atual</h3>
