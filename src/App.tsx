@@ -503,7 +503,13 @@ export default function App() {
   const [studies, setStudies] = useState<Study[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+      // Read directly from localStorage on init to prevent flash
+      if (typeof window !== 'undefined') {
+          return localStorage.getItem('tmu_pro_dark') === 'true';
+      }
+      return false;
+  });
   
   // Dashboard Sub-Views
   const [dashView, setDashView] = useState<'list' | 'reference'>('list');
@@ -528,10 +534,6 @@ export default function App() {
     if (window.innerWidth < 1024) {
         setWizardOpen(false);
     }
-
-    // Load Dark Mode
-    const savedDark = localStorage.getItem('tmu_pro_dark') === 'true';
-    setDarkMode(savedDark);
   }, []);
 
   // Save Effect
@@ -539,12 +541,13 @@ export default function App() {
     localStorage.setItem('tmu_pro_data', JSON.stringify(studies));
   }, [studies]);
 
-  // Dark Mode Effect
+  // Dark Mode Effect - Ensure class is applied immediately and on change
   useEffect(() => {
+    const root = document.documentElement;
     if (darkMode) {
-        document.documentElement.classList.add('dark');
+        root.classList.add('dark');
     } else {
-        document.documentElement.classList.remove('dark');
+        root.classList.remove('dark');
     }
     localStorage.setItem('tmu_pro_dark', String(darkMode));
   }, [darkMode]);
