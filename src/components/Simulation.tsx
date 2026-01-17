@@ -7,6 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import type { Study, Motion } from '../types/types';
+import { analyzeErgonomics, ErgonomicResult } from '../utils/ergonomics';
 
 interface SimulationScenario {
   id: string;
@@ -144,47 +145,47 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
   }));
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 animate-in fade-in transition-colors duration-300">
-      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex justify-between items-center shadow-sm z-10">
+    <div className="flex flex-col h-full bg-slate-50 animate-in fade-in transition-colors duration-300">
+      <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm z-10">
          <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <MonitorPlay className="text-purple-600 dark:text-purple-400"/> Simulação de Cenários
             </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Compare visualmente e encontre o melhor método.</p>
+            <p className="text-sm text-slate-500">Compare visualmente e encontre o melhor método.</p>
          </div>
-         <button onClick={onBack} className="px-4 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-lg font-bold text-slate-600 dark:text-slate-300 transition-colors">
+         <button onClick={onBack} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold text-slate-600 transition-colors">
              Voltar
          </button>
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col lg:flex-row">
           {/* Controls & List */}
-          <div className="w-full lg:w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col overflow-y-auto">
-             <div className="p-4 border-b border-slate-100 dark:border-slate-700">
-                <h3 className="font-bold text-slate-700 dark:text-white mb-3 uppercase text-xs">Cenários Disponíveis</h3>
+          <div className="w-full lg:w-80 bg-white border-r border-slate-200 flex flex-col overflow-y-auto">
+             <div className="p-4 border-b border-slate-100">
+                <h3 className="font-bold text-slate-700 mb-3 uppercase text-xs">Cenários Disponíveis</h3>
                 <div className="space-y-2">
                     {scenarios.map(s => (
                         <button
                             key={s.id}
                             onClick={() => { setActiveScenarioId(s.id); handleReset(); }}
-                            className={`w-full text-left p-3 rounded-xl border transition-all relative overflow-hidden ${activeScenarioId === s.id ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 ring-1 ring-purple-500' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-500'}`}
+                            className={`w-full text-left p-3 rounded-xl border transition-all relative overflow-hidden ${activeScenarioId === s.id ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 ring-1 ring-purple-500' : 'bg-slate-50/50 border-slate-200 hover:border-purple-300 dark:hover:border-purple-500'}`}
                         >
                             <div className="flex justify-between items-start mb-1 relative z-10">
-                                <span className={`font-bold ${activeScenarioId === s.id ? 'text-purple-900 dark:text-purple-300' : 'text-slate-700 dark:text-white'}`}>{s.name}</span>
+                                <span className={`font-bold ${activeScenarioId === s.id ? 'text-purple-900 dark:text-purple-300' : 'text-slate-700'}`}>{s.name}</span>
                                 {s.id === bestScenarioId && <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1"><Check size={10}/> Melhor</span>}
                             </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-2 relative z-10">{s.description}</div>
+                            <div className="text-xs text-slate-500 mb-2 relative z-10">{s.description}</div>
                             <div className="flex justify-between items-center relative z-10">
-                                <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{calcTMU(s.motions).toFixed(1)} TMU</span>
-                                <span className="text-xs font-mono text-slate-500 dark:text-slate-400">{calcTime(calcTMU(s.motions))} min</span>
+                                <span className="font-mono font-bold text-slate-800">{calcTMU(s.motions).toFixed(1)} TMU</span>
+                                <span className="text-xs font-mono text-slate-500">{calcTime(calcTMU(s.motions))} min</span>
                             </div>
                         </button>
                     ))}
                 </div>
              </div>
 
-             <div className="p-4 bg-slate-50 dark:bg-slate-800 flex-1">
-                 <h4 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><BarChart2 size={16}/> Comparativo</h4>
+             <div className="p-4 bg-slate-50 flex-1">
+                 <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><BarChart2 size={16}/> Comparativo</h4>
                  <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={chartData} layout="vertical" margin={{left: 0, right: 30}}>
@@ -203,13 +204,13 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
           </div>
 
           {/* Visualization Area */}
-          <div className="flex-1 flex flex-col bg-slate-100 dark:bg-slate-900 p-4 lg:p-8 overflow-y-auto">
+          <div className="flex-1 flex flex-col bg-slate-100 p-4 lg:p-8 overflow-y-auto">
               {activeScenario ? (
                   <div className="max-w-4xl mx-auto w-full space-y-6">
 
                       {/* Player Card */}
-                      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                          <div className="p-6 bg-slate-900 dark:bg-slate-950 text-white flex justify-between items-center">
+                      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
+                          <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
                               <div>
                                   <h3 className="text-2xl font-bold">{activeScenario.name}</h3>
                                   <p className="text-slate-400 text-sm">Visualização em Tempo Real (Simulado)</p>
@@ -222,18 +223,17 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
                           </div>
 
                           {/* Progress Bar */}
-                          <div className="h-4 bg-slate-800 dark:bg-slate-900 w-full relative">
+                          <div className="h-4 bg-slate-800 w-full relative">
                               <div
                                 className="h-full bg-gradient-to-r from-purple-600 to-indigo-500 transition-all duration-300 ease-linear"
                                 style={{ width: `${progress}%` }}
                               ></div>
-                              {/* Markers for motions could go here */}
                           </div>
 
                           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
                               {/* Controls */}
                               <div className="flex items-center gap-4 justify-center md:justify-start">
-                                  <button onClick={handleReset} className="p-3 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 transition-colors"><SkipBack size={20}/></button>
+                                  <button onClick={handleReset} className="p-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"><SkipBack size={20}/></button>
                                   <button
                                     onClick={handlePlay}
                                     className="p-4 rounded-full bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/30 transition-all active:scale-95"
@@ -243,12 +243,12 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
 
                                   <div className="flex flex-col gap-1">
                                       <label className="text-[10px] font-bold uppercase text-slate-400">Velocidade</label>
-                                      <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+                                      <div className="flex bg-slate-100 rounded-lg p-1">
                                           {[0.25, 0.5, 1, 2].map(s => (
                                               <button
                                                 key={s}
                                                 onClick={() => setPlaybackSpeed(s)}
-                                                className={`px-2 py-1 text-xs font-bold rounded ${playbackSpeed === s ? 'bg-white dark:bg-slate-600 shadow text-purple-600 dark:text-purple-300' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                                className={`px-2 py-1 text-xs font-bold rounded ${playbackSpeed === s ? 'bg-white shadow text-purple-600' : 'text-slate-400 hover:text-slate-600'}`}
                                               >
                                                   {s}x
                                               </button>
@@ -257,56 +257,120 @@ export const Simulation: React.FC<SimulationProps> = ({ study, onUpdateStudy, on
                                   </div>
 
                                   <div className="flex gap-2">
-                                      <button onClick={() => handleStep('prev')} className="p-2 bg-slate-100 dark:bg-slate-700 rounded hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold text-xs">Ant</button>
-                                      <button onClick={() => handleStep('next')} className="p-2 bg-slate-100 dark:bg-slate-700 rounded hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-500 dark:text-slate-400 font-bold text-xs">Próx</button>
+                                      <button onClick={() => handleStep('prev')} className="p-2 bg-slate-100 rounded hover:bg-slate-200 text-slate-500 font-bold text-xs">Ant</button>
+                                      <button onClick={() => handleStep('next')} className="p-2 bg-slate-100 rounded hover:bg-slate-200 text-slate-500 font-bold text-xs">Próx</button>
                                   </div>
                               </div>
 
                               {/* Current Action Display */}
-                              <div className="bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl p-4 flex items-center gap-4 min-h-[100px]">
-                                  {activeScenario.motions[currentMotionIndex] ? (
-                                      <>
-                                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0 ${activeScenario.motions[currentMotionIndex].hand === 'E' ? 'bg-blue-500' : activeScenario.motions[currentMotionIndex].hand === 'D' ? 'bg-red-500' : 'bg-slate-500'}`}>
-                                              {currentMotionIndex + 1}
-                                          </div>
-                                          <div className="flex-1">
-                                              <div className="flex justify-between items-start">
-                                                  <span className="block text-xs font-bold text-slate-400 uppercase mb-1">Executando Agora</span>
-                                                  <span className="text-[10px] font-bold text-slate-400">
-                                                      {(progress / 100 * activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0)).toFixed(1)} / {activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0).toFixed(1)} TMU
-                                                  </span>
+                              <div className="space-y-4">
+                                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center gap-4 min-h-[100px]">
+                                      {activeScenario.motions[currentMotionIndex] ? (
+                                          <>
+                                              <div className={`w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0 ${activeScenario.motions[currentMotionIndex].hand === 'E' ? 'bg-blue-500' : activeScenario.motions[currentMotionIndex].hand === 'D' ? 'bg-red-500' : 'bg-slate-500'}`}>
+                                                  {currentMotionIndex + 1}
                                               </div>
-                                              <h4 className="font-bold text-slate-800 dark:text-white text-lg leading-tight">{activeScenario.motions[currentMotionIndex].desc}</h4>
-                                              <div className="flex gap-2 mt-1">
-                                                  <span className="text-xs font-mono bg-white dark:bg-slate-800 border dark:border-slate-600 px-1 rounded text-slate-500 dark:text-slate-400">{activeScenario.motions[currentMotionIndex].code}</span>
-                                                  <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300">{activeScenario.motions[currentMotionIndex].tmu} TMU</span>
+                                              <div className="flex-1">
+                                                  <div className="flex justify-between items-start">
+                                                      <span className="block text-xs font-bold text-slate-400 uppercase mb-1">Executando Agora</span>
+                                                      <span className="text-[10px] font-bold text-slate-400">
+                                                          {(progress / 100 * activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0)).toFixed(1)} / {activeScenario.motions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0).toFixed(1)} TMU
+                                                      </span>
+                                                  </div>
+                                                  <h4 className="font-bold text-slate-800 text-lg leading-tight">{activeScenario.motions[currentMotionIndex].desc}</h4>
+                                                  <div className="flex gap-2 mt-1">
+                                                      <span className="text-xs font-mono bg-white border px-1 rounded text-slate-500">{activeScenario.motions[currentMotionIndex].code}</span>
+                                                      <span className="text-xs font-mono font-bold text-slate-600">{activeScenario.motions[currentMotionIndex].tmu} TMU</span>
+                                                  </div>
                                               </div>
+                                          </>
+                                      ) : (
+                                          <div className="text-slate-400 flex items-center gap-2 justify-center w-full">
+                                              <Check size={20} className="text-emerald-500"/> Simulação Concluída
                                           </div>
-                                      </>
-                                  ) : (
-                                      <div className="text-slate-400 flex items-center gap-2 justify-center w-full">
-                                          <Check size={20} className="text-emerald-500"/> Simulação Concluída
-                                      </div>
+                                      )}
+                                  </div>
+
+                                  {/* Ergonomic Alert */}
+                                  {activeScenario.motions[currentMotionIndex] && (
+                                      (() => {
+                                          const analysis = analyzeErgonomics(activeScenario.motions[currentMotionIndex]);
+                                          if (analysis.riskLevel !== 'Low') {
+                                              return (
+                                                  <div className={`p-3 rounded-lg border-l-4 text-xs ${analysis.riskLevel === 'High' ? 'bg-red-50 border-red-500 text-red-700' : 'bg-yellow-50 border-yellow-500 text-yellow-700'}`}>
+                                                      <div className="flex items-center gap-2 font-bold mb-1">
+                                                          <AlertCircle size={14}/>
+                                                          Alerta Ergonômico: Risco {analysis.riskLevel === 'High' ? 'Alto' : 'Médio'}
+                                                      </div>
+                                                      <p>{analysis.message}</p>
+                                                      <p className="mt-1 font-bold">Sugestão: {analysis.suggestion}</p>
+                                                  </div>
+                                              );
+                                          }
+                                          return null;
+                                      })()
                                   )}
                               </div>
                           </div>
                       </div>
 
+                      {/* Top Time Consumers */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                              <h4 className="font-bold text-slate-700 mb-4">Maiores Consumidores de Tempo</h4>
+                              <div className="space-y-3">
+                                  {[...activeScenario.motions]
+                                      .map((m, i) => ({ ...m, idx: i, total: m.tmu * (m.freq || 1) }))
+                                      .sort((a, b) => b.total - a.total)
+                                      .slice(0, 5)
+                                      .map((m, i) => (
+                                          <div key={i} className="flex items-center justify-between text-xs">
+                                              <div className="flex items-center gap-2">
+                                                  <span className="font-bold text-slate-400">#{m.idx + 1}</span>
+                                                  <span className="font-medium text-slate-700 truncate max-w-[150px]" title={m.desc}>{m.desc}</span>
+                                              </div>
+                                              <div className="font-mono font-bold text-red-600">
+                                                  {m.total.toFixed(1)} TMU
+                                              </div>
+                                          </div>
+                                      ))
+                                  }
+                              </div>
+                          </div>
+
+                          {/* Ergonomic Summary */}
+                          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                              <h4 className="font-bold text-slate-700 mb-4">Resumo Ergonômico</h4>
+                              <div className="grid grid-cols-3 gap-2 text-center">
+                                  {['Low', 'Medium', 'High'].map(level => {
+                                      const count = activeScenario.motions.filter(m => analyzeErgonomics(m).riskLevel === level).length;
+                                      const color = level === 'Low' ? 'text-emerald-600 bg-emerald-50' : level === 'Medium' ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
+                                      return (
+                                          <div key={level} className={`p-2 rounded-lg ${color}`}>
+                                              <div className="text-2xl font-bold">{count}</div>
+                                              <div className="text-[10px] uppercase font-bold opacity-70">{level === 'Low' ? 'Baixo' : level === 'Medium' ? 'Médio' : 'Alto'}</div>
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      </div>
+
                       {/* Detailed Sequence (Horizontal Scroll) */}
-                      <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                          <h4 className="font-bold text-slate-700 dark:text-white mb-4">Linha do Tempo</h4>
+                      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                          <h4 className="font-bold text-slate-700 mb-4">Linha do Tempo</h4>
                           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-thin">
                               {activeScenario.motions.map((m, i) => (
                                   <div
                                     key={i}
-                                    className={`shrink-0 w-32 p-3 rounded-lg border transition-all ${i === currentMotionIndex ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 ring-2 ring-purple-200 dark:ring-purple-900' : 'bg-slate-50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-600 opacity-60'}`}
+                                    className={`shrink-0 w-32 p-3 rounded-lg border transition-all ${i === currentMotionIndex ? 'bg-purple-50 dark:bg-purple-900/20 border-purple-500 ring-2 ring-purple-200 dark:ring-purple-900' : 'bg-slate-50/50 border-slate-200 opacity-60'}`}
                                   >
                                       <div className="flex justify-between mb-2">
                                           <span className="text-[10px] font-bold text-slate-400">#{i+1}</span>
                                           <span className={`w-2 h-2 rounded-full ${m.hand === 'E' ? 'bg-blue-500' : m.hand === 'D' ? 'bg-red-500' : 'bg-slate-500'}`}></span>
                                       </div>
-                                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate mb-1" title={m.desc}>{m.desc}</p>
-                                      <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{m.code}</p>
+                                      <p className="text-xs font-bold text-slate-700 truncate mb-1" title={m.desc}>{m.desc}</p>
+                                      <p className="text-[10px] font-mono text-slate-500">{m.code}</p>
                                   </div>
                               ))}
                           </div>
