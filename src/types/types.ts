@@ -18,6 +18,7 @@ export interface ROI {
 export interface Study {
   id: string;
   title: string;
+  analyst?: string; // New field for Analyst Name
   tolerance: number;
   currentMotions: Motion[];
   proposedMotions: Motion[];

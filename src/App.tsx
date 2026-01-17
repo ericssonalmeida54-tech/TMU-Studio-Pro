@@ -6,7 +6,7 @@ import {
   X, Bot, PlusCircle, HelpCircle, Printer, DollarSign, 
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp, 
   ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
-  MonitorPlay, Moon, Sun, Award
+  MonitorPlay, Moon, Sun, Award, FileText
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -504,7 +504,6 @@ export default function App() {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
-      // Read directly from localStorage on init to prevent flash
       if (typeof window !== 'undefined') {
           return localStorage.getItem('tmu_pro_dark') === 'true';
       }
@@ -530,7 +529,6 @@ export default function App() {
         setShowTutorial(true);
     }
     
-    // Auto-close wizard on mobile init
     if (window.innerWidth < 1024) {
         setWizardOpen(false);
     }
@@ -541,7 +539,7 @@ export default function App() {
     localStorage.setItem('tmu_pro_data', JSON.stringify(studies));
   }, [studies]);
 
-  // Dark Mode Effect - Ensure class is applied immediately and on change
+  // Dark Mode Effect
   useEffect(() => {
     const root = document.documentElement;
     if (darkMode) {
@@ -580,7 +578,7 @@ export default function App() {
     const s = studies.find(x => x.id === id);
     if (s) {
       setCurrentId(id);
-      setEditorData(JSON.parse(JSON.stringify(s))); // Deep copy
+      setEditorData(JSON.parse(JSON.stringify(s)));
       setView('editor');
       setActiveTab('current');
     }
@@ -875,36 +873,125 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                 </div>
             </header>
 
-            {/* FULL REPORT PRINT VIEW (Kept as is, standard white background for printing) */}
-            <div className="hidden print:block bg-white p-8 w-full print:overflow-visible h-auto text-slate-800">
-                <div className="mb-8 border-b-2 border-red-600 pb-4">
-                    <h1 className="text-3xl font-black text-red-600 uppercase italic tracking-tighter">TMU Studio Pro</h1>
-                    <div className="flex justify-between items-end mt-2">
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-800">{data.title || 'Relatório de Estudo MTM-1'}</h2>
-                            <p className="text-sm text-slate-500">Gerado em {new Date().toLocaleDateString()}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-xs font-bold text-slate-400 uppercase">Tolerância Aplicada</p>
-                            <p className="text-lg font-mono font-bold text-slate-700">{data.tolerance}%</p>
-                        </div>
+            {/* FULL REPORT PRINT VIEW - REFACTORED */}
+            <div className="hidden print:block fixed inset-0 z-[100] bg-white text-black p-8 overflow-visible h-auto">
+                <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-900 uppercase tracking-wide">Relatório de Análise Operacional</h1>
+                        <p className="text-sm text-slate-600 mt-1">Método MTM-1 (Methods-Time Measurement)</p>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-xs text-slate-500 uppercase">Data de Emissão</p>
+                        <p className="font-bold text-slate-900">{new Date().toLocaleDateString()}</p>
                     </div>
                 </div>
-                {/* ... (Print content omitted to save chars, assume valid as it is hidden in screen) ... */}
-                {/* Re-inserting required print structure for correctness in case user prints */}
-                 <div className="grid grid-cols-3 gap-6 mb-8">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+
+                <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
+                    <div>
+                        <p className="text-xs text-slate-500 uppercase mb-1">Operação</p>
+                        <p className="font-bold text-lg text-slate-900">{data.title || 'Sem Título'}</p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-slate-500 uppercase mb-1">Analista Responsável</p>
+                        <p className="font-bold text-lg text-slate-900">{data.analyst || 'Não Informado'}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6 mb-8">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 break-inside-avoid">
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Método Atual</p>
                         <p className="text-2xl font-mono font-bold text-slate-700">{curMin.toFixed(4)} <span className="text-sm text-slate-400">min</span></p>
                     </div>
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 break-inside-avoid">
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Método Proposto</p>
                         <p className="text-2xl font-mono font-bold text-slate-700">{proMin.toFixed(4)} <span className="text-sm text-slate-400">min</span></p>
                     </div>
-                    <div className={`p-4 rounded-xl border ${saving > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                    <div className={`p-4 rounded-xl border break-inside-avoid ${saving > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
                         <p className={`text-xs font-bold uppercase mb-1 ${saving > 0 ? 'text-emerald-600' : 'text-red-600'}`}>Ganho Estimado</p>
                         <p className={`text-2xl font-mono font-bold ${saving > 0 ? 'text-emerald-700' : 'text-red-700'}`}>{savingPct.toFixed(1)}%</p>
                     </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4 mb-8 break-inside-avoid">
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Redução de Tempo</p>
+                        <p className="text-lg font-bold text-slate-800">{(curMin - proMin).toFixed(4)} min</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Horas Ganhas/Ano</p>
+                        <p className="text-lg font-bold text-slate-800">{((curMin - proMin) * data.roi.volume * (data.roi.daysPerMonth || 22) * 12 / 60).toFixed(1)} h</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Aumento Produção</p>
+                        <p className="text-lg font-bold text-slate-800">{proMin > 0 ? (((curMin - proMin) / proMin) * 100).toFixed(1) : 0}%</p>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Peças/Hora (Novo)</p>
+                        <p className="text-lg font-bold text-slate-800">{proMin > 0 ? ((data.roi.minutesPerHour || 60)/proMin).toFixed(0) : 0}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div>
+                        <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Atual</h3>
+                        <table className="w-full text-xs border-collapse">
+                            <thead>
+                                <tr className="bg-slate-100 border-b border-slate-300">
+                                    <th className="p-2 text-left">#</th>
+                                    <th className="p-2 text-left">Cód</th>
+                                    <th className="p-2 text-left">Desc</th>
+                                    <th className="p-2 text-right">TMU</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.currentMotions.map((m: Motion, i: number) => (
+                                    <tr key={i} className="border-b border-slate-100 break-inside-avoid">
+                                        <td className="p-2 font-bold text-slate-500">{i+1}</td>
+                                        <td className="p-2 font-mono font-bold">{m.code}</td>
+                                        <td className="p-2 truncate max-w-[150px]">{m.desc}</td>
+                                        <td className="p-2 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Proposto</h3>
+                        <table className="w-full text-xs border-collapse">
+                            <thead>
+                                <tr className="bg-slate-100 border-b border-slate-300">
+                                    <th className="p-2 text-left">#</th>
+                                    <th className="p-2 text-left">Cód</th>
+                                    <th className="p-2 text-left">Desc</th>
+                                    <th className="p-2 text-right">TMU</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.proposedMotions.map((m: Motion, i: number) => (
+                                    <tr key={i} className="border-b border-slate-100 break-inside-avoid">
+                                        <td className="p-2 font-bold text-slate-500">{i+1}</td>
+                                        <td className="p-2 font-mono font-bold">{m.code}</td>
+                                        <td className="p-2 truncate max-w-[150px]">{m.desc}</td>
+                                        <td className="p-2 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200 break-inside-avoid mb-8">
+                    <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Projeção Financeira</h3>
+                    <div className="grid grid-cols-4 gap-4 text-sm">
+                        <div><span className="block text-slate-400 text-xs uppercase">Custo Minuto</span> <strong>R$ {data.roi.costMin.toFixed(2)}</strong></div>
+                        <div><span className="block text-slate-400 text-xs uppercase">Volume/Dia</span> <strong>{data.roi.volume}</strong></div>
+                        <div><span className="block text-slate-400 text-xs uppercase">Dias/Mês</span> <strong>{data.roi.daysPerMonth || 22}</strong></div>
+                        <div><span className="block text-slate-400 text-xs uppercase">Economia/Mês</span> <strong className="text-emerald-600">R$ {(saving * data.roi.costMin * data.roi.volume * (data.roi.daysPerMonth || 22)).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</strong></div>
+                    </div>
+                </div>
+
+                <div className="fixed bottom-0 left-0 right-0 p-4 text-center border-t border-slate-200 bg-white">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Desenvolvido por CSSN</p>
                 </div>
             </div>
 
@@ -923,6 +1010,16 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                             <div className="max-w-xl mx-auto bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl border dark:border-slate-700 shadow-sm">
                                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800 dark:text-white"><Settings2 className="text-red-600"/> Configurações</h2>
                                 <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome do Analista</label>
+                                        <input
+                                            value={data.analyst || ''}
+                                            onChange={(e) => setData({...data, analyst: e.target.value})}
+                                            placeholder="Ex: João Silva"
+                                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 focus:bg-white dark:focus:bg-slate-600 focus:ring-2 ring-red-500 font-medium outline-none text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tolerância (%)</label>
                                         <div className="flex items-center gap-4">
@@ -1495,188 +1592,6 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                     </div>
                 </div>
              </div>
-        </div>
-    );
-};
-
-const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => void }) => {
-    const factor = 1 + (data.tolerance / 100);
-    const calcTotal = (arr: Motion[]) => arr.reduce((s,m)=> s + (m.tmu * (m.freq || 1)), 0);
-    const curT = calcTotal(data.currentMotions) * 0.0006 * factor;
-    const proT = calcTotal(data.proposedMotions) * 0.0006 * factor;
-    const savT = Math.max(0, curT - proT);
-    
-    const monthlySaving = savT * data.roi.costMin * data.roi.volume * (data.roi.daysPerMonth || 22);
-    const yrSav = monthlySaving * 12;
-    const investmentRecov = data.roi.invest > 0 && monthlySaving > 0 ? (data.roi.invest / monthlySaving) : 0;
-    const impactPct = curT > 0 ? ((curT - proT) / curT) * 100 : 0;
-
-    // Advanced Metrics - UPDATED with user config
-    const minsPerHour = data.roi.minutesPerHour || 60;
-    const unitsPerHour = proT > 0 ? minsPerHour / proT : 0;
-    const costPerUnit = proT * data.roi.costMin;
-    const targetPct = data.roi.targetIncreasePct || 0;
-    const targetMet = impactPct >= targetPct;
-    
-    // Distribution Data
-    const getDistribution = (motions: Motion[]) => {
-        let hand = 0, body = 0;
-        motions.forEach(m => {
-            if(['R','M','G','P','RL','D','T'].some(c => m.code.startsWith(c))) hand += m.tmu;
-            else body += m.tmu;
-        });
-        return [{name: 'Mãos', value: hand}, {name: 'Corpo', value: body}];
-    }
-    const distData = getDistribution(data.proposedMotions.length > 0 ? data.proposedMotions : data.currentMotions);
-    
-    const chartData = [
-        { name: 'Atual', min: curT },
-        { name: 'Proposto', min: proT }
-    ];
-
-    const cC = data.currentMotions.length;
-    const pC = data.proposedMotions.length;
-    const diff = cC - pC;
-
-    return (
-        <div className="flex-1 p-4 sm:p-8 overflow-y-auto bg-slate-50 dark:bg-slate-900 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="max-w-6xl mx-auto space-y-8">
-                
-                {/* Finance Inputs & Main Impact */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2"><DollarSign className="text-red-600" size={18}/> Parâmetros Financeiros</h3>
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Custo Min (R$)</label>
-                                <input type="number" step="0.01" value={data.roi.costMin} onChange={e => setData({...data, roi: {...data.roi, costMin: parseFloat(e.target.value)}})} className="w-full p-3 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl text-lg text-slate-900 dark:text-white font-bold focus:border-red-500 focus:ring-0 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Vol. Diário</label>
-                                <input type="number" value={data.roi.volume} onChange={e => setData({...data, roi: {...data.roi, volume: parseFloat(e.target.value)}})} className="w-full p-3 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl text-lg text-slate-900 dark:text-white font-bold focus:border-red-500 focus:ring-0 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Invest. (R$)</label>
-                                <input type="number" step="100" value={data.roi.invest} onChange={e => setData({...data, roi: {...data.roi, invest: parseFloat(e.target.value)}})} className="w-full p-3 bg-white dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 rounded-xl text-lg text-slate-900 dark:text-white font-bold focus:border-red-500 focus:ring-0 outline-none" />
-                            </div>
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-2 text-right italic">*Considerando {data.roi.daysPerMonth || 22} dias úteis/mês.</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-slate-800 to-slate-900 dark:from-slate-700 dark:to-slate-800 p-6 rounded-2xl shadow-lg text-white flex flex-col justify-between relative overflow-hidden">
-                        {/* Target Badge */}
-                        <div className={`absolute top-4 right-4 flex items-center gap-1 text-xs font-bold uppercase py-1 px-2 rounded-lg border ${targetMet ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' : 'bg-red-500/20 text-red-300 border-red-500/30'}`}>
-                             {targetMet ? <CheckCircle size={14}/> : <Target size={14}/>}
-                             Meta: {targetPct}%
-                        </div>
-
-                        <div>
-                            <p className="text-slate-400 text-xs font-bold uppercase">Impacto de Melhoria</p>
-                            <div className="flex items-end gap-2">
-                                <h2 className={`text-5xl font-black tracking-tighter ${impactPct < 0 ? 'text-red-400' : 'text-white'}`}>{impactPct.toFixed(1)}%</h2>
-                                <span className={`text-sm font-medium mb-2 ${impactPct < 0 ? 'text-red-400' : 'text-emerald-400'}`}>{impactPct < 0 ? 'de aumento' : 'de redução'}</span>
-                            </div>
-                        </div>
-                        <div className="w-full bg-slate-700/50 rounded-full h-2 mt-4 overflow-hidden">
-                            <div className={`h-full transition-all duration-1000 ${impactPct < 0 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{width: `${Math.max(0, Math.min(100, Math.abs(impactPct)))}%`}}></div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Savings & Payback */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl text-white shadow-lg">
-                        <p className="text-emerald-100 text-xs font-bold uppercase">Economia Mensal</p>
-                        <h2 className="text-3xl font-bold mt-1">{monthlySaving.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</h2>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <p className="text-slate-400 text-xs font-bold uppercase">Economia Anual</p>
-                        <h2 className="text-3xl font-bold text-slate-800 dark:text-white mt-1">{yrSav.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</h2>
-                    </div>
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <p className="text-slate-400 text-xs font-bold uppercase">Payback</p>
-                        <h2 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                            {monthlySaving <= 0 && data.roi.invest > 0 ? "Infinito" : data.roi.invest === 0 ? "Imediato" : `${investmentRecov.toFixed(1)} Meses`}
-                        </h2>
-                        <p className="text-xs text-slate-400 mt-1">
-                            {monthlySaving <= 0 && data.roi.invest > 0 ? "Sem ganho mensal" : data.roi.invest === 0 ? "Sem investimento" : `Retorno em ${(investmentRecov * 30).toFixed(0)} dias`}
-                        </p>
-                    </div>
-                </div>
-
-                {/* NEW: Production Insights (KPIs) */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h4 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><Target className="text-purple-600" size={18}/> KPIs de Produção (Proposto)</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl border border-purple-100 dark:border-purple-900/30">
-                                <span className="block text-purple-600 dark:text-purple-400 text-xs font-bold uppercase mb-1">Capacidade</span>
-                                <span className="block text-3xl font-bold text-purple-900 dark:text-purple-100">{unitsPerHour.toFixed(0)}</span>
-                                <span className="text-xs text-purple-400">peças/hora ({minsPerHour}min)</span>
-                            </div>
-                             <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                                <span className="block text-blue-600 dark:text-blue-400 text-xs font-bold uppercase mb-1">Custo Ind.</span>
-                                <span className="block text-3xl font-bold text-blue-900 dark:text-blue-100">R$ {costPerUnit.toFixed(4)}</span>
-                                <span className="text-xs text-blue-400">por peça</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col">
-                        <h4 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><Scale className="text-orange-600" size={18}/> Distribuição de Esforço</h4>
-                        <div className="flex-1 flex items-center justify-center gap-8">
-                             <div className="h-32 w-32">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RePieChart>
-                                        <Pie data={distData} innerRadius={25} outerRadius={40} paddingAngle={5} dataKey="value">
-                                            {distData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={index === 0 ? '#3b82f6' : '#f97316'} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip />
-                                    </RePieChart>
-                                </ResponsiveContainer>
-                             </div>
-                             <div className="text-sm space-y-2">
-                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-blue-500 rounded-full"></div> <span className="font-bold text-slate-600 dark:text-slate-300">Mãos/Braços ({(distData[0].value / (distData[0].value+distData[1].value || 1) * 100).toFixed(0)}%)</span></div>
-                                <div className="flex items-center gap-2"><div className="w-3 h-3 bg-orange-500 rounded-full"></div> <span className="font-bold text-slate-600 dark:text-slate-300">Corpo ({(distData[1].value / (distData[0].value+distData[1].value || 1) * 100).toFixed(0)}%)</span></div>
-                             </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Comparison Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <h4 className="font-bold text-slate-700 dark:text-white mb-4">Comparativo de Tempo (com Tolerância)</h4>
-                        <div className="h-64 w-full">
-                             <ResponsiveContainer width="100%" height="100%">
-                                 <BarChart data={chartData} layout="vertical" margin={{ left: 40 }}>
-                                     <XAxis type="number" hide />
-                                     <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#64748b', fontWeight: 'bold'}} />
-                                     <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'}} />
-                                     <Bar dataKey="min" fill="#3b82f6" radius={[0, 4, 4, 0]} barSize={40}>
-                                         {chartData.map((entry, index) => (
-                                             <Cell key={`cell-${index}`} fill={index === 0 ? '#94a3b8' : '#3b82f6'} />
-                                         ))}
-                                     </Bar>
-                                 </BarChart>
-                             </ResponsiveContainer>
-                        </div>
-                    </div>
-                    
-                    <div className="bg-orange-50 dark:bg-orange-900/20 p-6 rounded-2xl border border-orange-100 dark:border-orange-900/30 flex flex-col justify-center">
-                        <h4 className="font-bold text-orange-800 dark:text-orange-400 mb-2 flex items-center gap-2"><Scissors size={16}/> Análise de Eliminação</h4>
-                        <p className="text-sm text-orange-700 dark:text-orange-300 mb-4">
-                            {diff > 0 ? `O novo método elimina ${diff} movimentos desnecessários (redução de desperdício).` : diff === 0 ? "Quantidade de movimentos mantida." : `Novo método adiciona ${Math.abs(diff)} movimentos.`}
-                        </p>
-                        <div className="flex gap-8 text-sm justify-center">
-                            <div className="text-center"><span className="block font-bold text-3xl text-slate-800 dark:text-white">{cC}</span><span className="text-slate-500 text-xs uppercase">Atual</span></div>
-                            <div className="text-center"><span className="block font-bold text-3xl text-slate-800 dark:text-white">{pC}</span><span className="text-slate-500 text-xs uppercase">Proposto</span></div>
-                            <div className="text-center"><span className="block font-bold text-3xl text-red-600 dark:text-red-400">{Math.max(0, diff)}</span><span className="text-slate-500 text-xs uppercase">Eliminados</span></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
