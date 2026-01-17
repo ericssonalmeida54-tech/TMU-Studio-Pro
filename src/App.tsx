@@ -1287,7 +1287,7 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
 
     const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
     const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
-    const payback = monthlySave > 0 ? roi.invest / monthlySave : 0;
+    const payback = monthlySave > 0 ? (roi.invest || 0) / monthlySave : 0;
 
     // Prepare Chart Data
     const chartData = [
@@ -1317,20 +1317,23 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Chart */}
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 h-80">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col h-80">
                         <h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4"/> Comparativo de Tempo</h3>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}>
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} />
-                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                                <Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>
-                                    {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {/* Ensure parent has explicit dimensions for ResponsiveContainer */}
+                        <div className="flex-1 w-full min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}>
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} />
+                                    <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                                    <Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
 
                     {/* Financial ROI Calculator */}
@@ -1359,8 +1362,20 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
                                 </div>
                             </div>
 
-                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex justify-between items-center mb-2">
+                            {/* Added Investment Input */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Investimento (R$)</label>
+                                <input
+                                    type="number" step="100"
+                                    value={roi.invest || 0}
+                                    onChange={(e) => setData({...data, roi: {...roi, invest: parseFloat(e.target.value)}})}
+                                    className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none"
+                                    placeholder="0.00"
+                                />
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                                <div className="flex justify-between items-center">
                                     <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Mensal</span>
                                     <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                                         {monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -1372,6 +1387,15 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
                                         {(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                     </span>
                                 </div>
+                                {/* Added Payback Display */}
+                                {(roi.invest || 0) > 0 && (
+                                    <div className="flex justify-between items-center mt-2 p-2 bg-slate-100 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                                        <span className="text-sm font-bold text-slate-600 dark:text-slate-300">Retorno (Payback)</span>
+                                        <span className={`font-mono font-bold text-lg ${payback > 12 ? 'text-red-500' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                                            {payback.toFixed(1)} meses
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
