@@ -1272,6 +1272,128 @@ const ManualInput = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
     );
 };
 
+const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => void }) => {
+    const factor = 1 + (data.tolerance / 100);
+    const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor;
+    const c = calc(data.currentMotions);
+    const p = calc(data.proposedMotions);
+
+    // Safety check for NaN
+    const safeC = isNaN(c) ? 0 : c;
+    const safeP = isNaN(p) ? 0 : p;
+
+    const saving = Math.max(0, safeC - safeP);
+    const savingPct = safeC > 0 ? ((safeC - safeP) / safeC) * 100 : 0;
+
+    const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
+    const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
+    const payback = monthlySave > 0 ? roi.invest / monthlySave : 0;
+
+    // Prepare Chart Data
+    const chartData = [
+      { name: 'Atual', time: parseFloat(safeC.toFixed(4)), fill: '#64748b' },
+      { name: 'Proposto', time: parseFloat(safeP.toFixed(4)), fill: '#dc2626' },
+    ];
+
+    return (
+        <div className="flex-1 p-4 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="max-w-4xl mx-auto space-y-6">
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Atual</p>
+                        <p className="text-3xl font-mono font-bold text-slate-700 dark:text-white">{safeC.toFixed(4)} <span className="text-sm">min</span></p>
+                    </div>
+                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Proposto</p>
+                        <p className="text-3xl font-mono font-bold text-slate-700 dark:text-white">{safeP.toFixed(4)} <span className="text-sm">min</span></p>
+                    </div>
+                     <div className={`p-6 rounded-2xl shadow-sm border ${saving > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-900/30' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-2">Ganho de Produtividade</p>
+                        <p className={`text-3xl font-mono font-bold ${saving > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{savingPct.toFixed(1)}%</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Chart */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 h-80">
+                        <h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4"/> Comparativo de Tempo</h3>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}>
+                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} />
+                                <Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                                <Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>
+                                    {chartData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Financial ROI Calculator */}
+                    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
+                        <h3 className="font-bold text-slate-700 dark:text-white mb-6 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Calculadora ROI</h3>
+
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Custo Minuto (R$)</label>
+                                    <input
+                                        type="number" step="0.01"
+                                        value={roi.costMin}
+                                        onChange={(e) => setData({...data, roi: {...roi, costMin: parseFloat(e.target.value)}})}
+                                        className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Peças/Dia</label>
+                                    <input
+                                        type="number"
+                                        value={roi.volume}
+                                        onChange={(e) => setData({...data, roi: {...roi, volume: parseFloat(e.target.value)}})}
+                                        className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Mensal</span>
+                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">
+                                        {monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Anual</span>
+                                    <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">
+                                        {(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const BarChart2 = ({ className }: { className?: string }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24" height="24" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="12" y1="20" x2="12" y2="10"></line>
+      <line x1="18" y1="20" x2="18" y2="4"></line>
+      <line x1="6" y1="20" x2="6" y2="16"></line>
+    </svg>
+);
+
 // --- WIZARD CONFIGURATION ---
 const H_CFG: any = {
     'R': {
