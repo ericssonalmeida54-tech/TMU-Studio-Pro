@@ -7,7 +7,7 @@ import {
   X, Bot, PlusCircle, HelpCircle, Printer, DollarSign,
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp,
   ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
-  MonitorPlay, Moon, Sun, Award, FileText
+  MonitorPlay, Moon, Sun, Award, FileText, Activity
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { GoogleGenAI } from "@google/genai";
 import { parseCode, REACH_BASE, MOVE_BASE, STAT, POS_DATA, TURN_DATA, DIS_DATA } from './utils/mtmLogic';
+import { analyzeErgonomics } from './utils/ergonomics';
 import type { Study, Motion } from './types/types';
 import { Simulation } from './components/Simulation';
 
@@ -22,45 +23,45 @@ import { Simulation } from './components/Simulation';
 
 const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto print:hidden">
-    <div className="bg-white max-w-2xl w-full rounded-2xl p-6 sm:p-8 shadow-2xl relative my-auto">
+    <div className="bg-white dark:bg-slate-900 max-w-2xl w-full rounded-2xl p-6 sm:p-8 shadow-2xl relative my-auto border border-slate-200 dark:border-slate-800">
       <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
         <X className="w-6 h-6" />
       </button>
       <div className="mb-6 flex justify-center">
-        <div className="bg-red-100 p-4 rounded-full">
-           <Wand2 className="w-12 h-12 text-red-600" />
+        <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-full">
+           <Wand2 className="w-12 h-12 text-red-600 dark:text-red-500" />
         </div>
       </div>
-      <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 text-center mb-2">Bem-vindo ao TMU Studio Pro</h2>
-      <p className="text-slate-500 text-center mb-8">Sua ferramenta profissional para cronoanálise MTM-1.</p>
+      <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white text-center mb-2">Bem-vindo ao TMU Studio Pro</h2>
+      <p className="text-slate-500 dark:text-slate-400 text-center mb-8">Sua ferramenta profissional para cronoanálise MTM-1.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
         <div className="flex gap-4">
-            <div className="bg-blue-50 p-3 rounded-lg h-fit text-blue-600 shrink-0"><LayoutDashboard size={20}/></div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg h-fit text-blue-600 dark:text-blue-400 shrink-0"><LayoutDashboard size={20}/></div>
             <div>
-                <h4 className="font-bold text-slate-800">Biblioteca</h4>
-                <p className="text-sm text-slate-500">Gerencie todos os seus estudos e veja o resumo de ganhos.</p>
+                <h4 className="font-bold text-slate-800 dark:text-white">Biblioteca</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Gerencie todos os seus estudos e veja o resumo de ganhos.</p>
             </div>
         </div>
         <div className="flex gap-4">
-            <div className="bg-emerald-50 p-3 rounded-lg h-fit text-emerald-600 shrink-0"><Calculator size={20}/></div>
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg h-fit text-emerald-600 dark:text-emerald-400 shrink-0"><Calculator size={20}/></div>
             <div>
-                <h4 className="font-bold text-slate-800">Cálculo de ROI</h4>
-                <p className="text-sm text-slate-500">Comparação automática entre método atual e proposto.</p>
+                <h4 className="font-bold text-slate-800 dark:text-white">Cálculo de ROI</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Comparação automática entre método atual e proposto.</p>
             </div>
         </div>
         <div className="flex gap-4">
-            <div className="bg-purple-50 p-3 rounded-lg h-fit text-purple-600 shrink-0"><Bot size={20}/></div>
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg h-fit text-purple-600 dark:text-purple-400 shrink-0"><Bot size={20}/></div>
             <div>
-                <h4 className="font-bold text-slate-800">Assistente IA</h4>
-                <p className="text-sm text-slate-500">Descreva a operação em texto ou voz para gerar códigos automaticamente.</p>
+                <h4 className="font-bold text-slate-800 dark:text-white">Assistente IA</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Descreva a operação em texto ou voz para gerar códigos automaticamente.</p>
             </div>
         </div>
         <div className="flex gap-4">
-            <div className="bg-orange-50 p-3 rounded-lg h-fit text-orange-600 shrink-0"><Table2 size={20}/></div>
+            <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg h-fit text-orange-600 dark:text-orange-400 shrink-0"><Table2 size={20}/></div>
             <div>
-                <h4 className="font-bold text-slate-800">Tabela de Referência</h4>
-                <p className="text-sm text-slate-500">Acesse a tabela MTM completa diretamente no Dashboard.</p>
+                <h4 className="font-bold text-slate-800 dark:text-white">Tabela de Referência</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Acesse a tabela MTM completa diretamente no Dashboard.</p>
             </div>
         </div>
       </div>
@@ -72,22 +73,15 @@ const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   </div>
 );
 
-// ... (ConfirmModal, AIModal, HelpTip, MTMReferenceTable, App, ManualInput, BarChart2, Wizard Configuration, Wizard code is standard, I'll copy-paste and apply changes to Editor & ResultsView)
-
-// Let's implement the FULL file content with the fixes.
-
-// ... (Previous imports and components omitted for brevity, will be included in the full write)
-// I will start writing the full file content now.
-
 const ConfirmModal = ({ isOpen, onConfirm, onCancel, message }: { isOpen: boolean, onConfirm: () => void, onCancel: () => void, message: string }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200 print:hidden">
-            <div className="bg-white p-6 rounded-2xl shadow-xl max-w-sm w-full">
-                <h3 className="text-lg font-bold text-slate-800 mb-2">Confirmação</h3>
-                <p className="text-slate-600 mb-6">{message}</p>
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xl max-w-sm w-full border border-slate-200 dark:border-slate-800">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Confirmação</h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-6">{message}</p>
                 <div className="flex justify-end gap-3">
-                    <button onClick={onCancel} className="px-4 py-2 text-slate-500 font-medium hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
+                    <button onClick={onCancel} className="px-4 py-2 text-slate-500 dark:text-slate-400 font-medium hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
                     <button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white font-medium hover:bg-red-700 rounded-lg transition-colors">Confirmar</button>
                 </div>
             </div>
@@ -140,19 +134,19 @@ const AIModal = ({ onClose, onApply }: { onClose: () => void, onApply: (motions:
 
     return (
         <div className="fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in zoom-in duration-200">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6 relative">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl p-6 relative border border-slate-200 dark:border-slate-800">
                 <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors"><X size={20}/></button>
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl text-white shadow-lg shadow-purple-500/30"><Bot size={24} /></div>
-                    <div><h3 className="text-xl font-bold text-slate-800">Assistente IA</h3><p className="text-sm text-slate-500">Descreva a operação para gerar a sequência MTM.</p></div>
+                    <div><h3 className="text-xl font-bold text-slate-800 dark:text-white">Assistente IA</h3><p className="text-sm text-slate-500 dark:text-slate-400">Descreva a operação para gerar a sequência MTM.</p></div>
                 </div>
                 <div className="mb-4">
-                    <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ex: Pegar uma arruela..." className="w-full h-32 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none resize-none text-slate-700 font-medium" autoFocus />
+                    <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ex: Pegar uma arruela..." className="w-full h-32 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none resize-none text-slate-700 dark:text-slate-200 font-medium" autoFocus />
                     {error && <p className="text-xs text-red-500 mt-2 font-bold flex items-center gap-1"><Info size={12}/> {error}</p>}
                 </div>
                 <div className="flex justify-end gap-3">
-                    <button onClick={onClose} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition-colors">Cancelar</button>
-                    <button onClick={handleGenerate} disabled={loading || !prompt.trim()} className="px-6 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg">{loading ? <RotateCw className="animate-spin" size={18}/> : <Wand2 size={18}/>}{loading ? 'Processando...' : 'Gerar Códigos'}</button>
+                    <button onClick={onClose} className="px-4 py-2 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">Cancelar</button>
+                    <button onClick={handleGenerate} disabled={loading || !prompt.trim()} className="px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg">{loading ? <RotateCw className="animate-spin" size={18}/> : <Wand2 size={18}/>}{loading ? 'Processando...' : 'Gerar Códigos'}</button>
                 </div>
             </div>
         </div>
@@ -167,7 +161,6 @@ const HelpTip = ({ content }: { content: React.ReactNode }) => {
     return ( <> <button ref={btnRef} type="button" onClick={toggle} className="text-slate-400 hover:text-blue-600 transition-colors focus:outline-none ml-1 align-middle inline-flex" title="Ver exemplo"><HelpIcon size={14} /></button> {show && ( <div className="fixed inset-0 z-[100] cursor-default" onClick={(e) => { e.stopPropagation(); setShow(false); }}> <div className="absolute bg-slate-800 text-white text-xs p-3 rounded-xl shadow-2xl max-w-[220px] text-center animate-in fade-in zoom-in-95 duration-200 border border-slate-700 pointer-events-none" style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }}> {content} <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-slate-800"></div> </div> </div> )} </> );
 };
 
-// ... MTMReferenceTable (Standard content, not changing logic)
 const MTMReferenceTable = () => {
     const EX: any = {
         R: { A: "Fixo", B: "Variável", C: "Misturado", D: "Pequeno", E: "Equilíbrio" },
@@ -178,15 +171,15 @@ const MTMReferenceTable = () => {
         G: { "G1A": "Fácil", "G1B": "Pequeno", "G4A": "Pilha >25mm", "G4B": "Pilha <25mm", "G5": "Tocar" }
     };
     return (
-        <div className="flex-1 bg-white p-6 sm:p-8 overflow-y-auto animate-in fade-in">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2"><BookOpen className="text-red-600"/> Tabela MTM-1 (Referência Simplificada)</h2>
-            <p className="text-slate-500">Consulte a tabela completa na documentação oficial ou use o Assistente.</p>
-            {/* ... Full table implementation is preserved in previous read, I'm simplifying here for brevity in rewrite logic but the key is App logic */}
+        <div className="flex-1 bg-white dark:bg-slate-900 p-6 sm:p-8 overflow-y-auto animate-in fade-in">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2"><BookOpen className="text-red-600"/> Tabela MTM-1 (Referência Simplificada)</h2>
+            <p className="text-slate-500 dark:text-slate-400">Consulte a tabela completa na documentação oficial ou use o Assistente.</p>
+            {/* Table implementation omitted for brevity, logic unchanged */}
         </div>
     );
 }
 
-// ... App Component (Fix Layout Shadow)
+// ... App Component (Fix Layout Shadow & Dark Mode)
 export default function App() {
   const [view, setView] = useState<'dashboard' | 'editor' | 'simulation'>('dashboard');
   const [studies, setStudies] = useState<Study[]>([]);
@@ -199,8 +192,30 @@ export default function App() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('theme');
+        return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+    return false;
+  });
+
   useEffect(() => { const saved = localStorage.getItem('tmu_pro_data'); if (saved) setStudies(JSON.parse(saved)); else setShowTutorial(true); if (window.innerWidth < 1024) setWizardOpen(false); }, []);
   useEffect(() => { localStorage.setItem('tmu_pro_data', JSON.stringify(studies)); }, [studies]);
+
+  // Dark Mode Effect
+  useEffect(() => {
+    if (darkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+    }
+  }, [darkMode]);
+
+  const toggleTheme = () => setDarkMode(!darkMode);
 
   const handleCreateNew = () => {
     const newStudy: Study = { id: Date.now().toString(), title: "Nova Análise", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60, targetIncreasePct: 10 }, updatedAt: Date.now() };
@@ -212,36 +227,39 @@ export default function App() {
   const totalSavings = useMemo(() => { return studies.reduce((acc, study) => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const cur = calc(study.currentMotions); const pro = calc(study.proposedMotions); const saving = Math.max(0, cur - pro); return acc + (saving * study.roi.costMin * study.roi.volume * (study.roi.daysPerMonth || 22)); }, 0); }, [studies]);
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-slate-50 text-slate-800 font-sans overflow-hidden print:h-auto print:overflow-visible">
+    <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white font-sans overflow-hidden print:h-auto print:overflow-visible transition-colors duration-300">
         {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
         {confirmDeleteId && <ConfirmModal isOpen={true} message="Tem certeza?" onConfirm={() => handleDeleteStudy(confirmDeleteId)} onCancel={() => setConfirmDeleteId(null)} />}
 
         {view === 'dashboard' && (
             <div className="flex h-full animate-in fade-in duration-500 relative print:hidden">
-                <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-col z-20">
-                    <div className="p-6 border-b border-slate-100 flex items-center justify-start gap-3">
+                <aside className="hidden lg:flex w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col z-20">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-start gap-3">
                          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-red-500/20">T</div>
-                         <div><h1 className="text-xl font-bold text-slate-900 leading-none">TMU Studio</h1><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PRO EDITION</span></div>
+                         <div><h1 className="text-xl font-bold text-slate-900 dark:text-white leading-none">TMU Studio</h1><span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PRO EDITION</span></div>
                     </div>
                     <nav className="flex-1 p-4 space-y-2">
-                        <button onClick={() => setDashView('list')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'list' ? 'bg-slate-100 text-red-600' : 'text-slate-500 hover:bg-slate-50'}`}><LayoutDashboard size={20} /> Dashboard</button>
-                         <button onClick={() => setDashView('reference')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'reference' ? 'bg-slate-100 text-red-600' : 'text-slate-500 hover:bg-slate-50'}`}><BookOpen size={20} /> Tabela MTM-1</button>
+                        <button onClick={() => setDashView('list')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} /> Dashboard</button>
+                         <button onClick={() => setDashView('reference')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'reference' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><BookOpen size={20} /> Tabela MTM-1</button>
                         <button onClick={handleCreateNew} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 mt-4"><Plus size={20} /> Novo Estudo</button>
-                        <div className="pt-8 border-t border-slate-100 mt-4"><p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Recentes</p>{studies.slice(0, 5).map(s => (<button key={s.id} onClick={() => handleOpenStudy(s.id)} className="w-full text-left px-3 py-2 text-sm text-slate-600 hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors truncate">{s.title}</button>))}</div>
+                        <div className="pt-8 border-t border-slate-100 dark:border-slate-800 mt-4"><p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Recentes</p>{studies.slice(0, 5).map(s => (<button key={s.id} onClick={() => handleOpenStudy(s.id)} className="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors truncate">{s.title}</button>))}</div>
                     </nav>
-                    <div className="p-4 border-t border-slate-100 flex justify-between items-center"><button onClick={() => setShowTutorial(true)} className="flex items-center justify-start gap-2 text-slate-400 hover:text-red-500 text-sm font-medium transition-colors"><HelpCircle size={18} /> Ajuda</button></div>
+                    <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <button onClick={toggleTheme} className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">{darkMode ? <Sun size={20}/> : <Moon size={20}/>}</button>
+                        <button onClick={() => setShowTutorial(true)} className="flex items-center justify-start gap-2 text-slate-400 hover:text-red-500 text-sm font-medium transition-colors"><HelpCircle size={18} /> Ajuda</button>
+                    </div>
                 </aside>
                 <main className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8 flex flex-col">
                     {dashView === 'list' ? (
                         <>
                             <header className="mb-8 flex flex-col sm:flex-row justify-between sm:items-end gap-4 shrink-0">
-                                <div><h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Painel de Estudos</h2><p className="text-slate-500">Gestão e análise de produtividade.</p></div>
-                                <div className="text-left sm:text-right bg-white sm:bg-transparent p-4 sm:p-0 rounded-xl border sm:border-none border-slate-100 shadow-sm sm:shadow-none"><p className="text-sm font-bold text-slate-400 uppercase">Economia Total (Mês)</p><p className="text-2xl font-bold text-emerald-600">{totalSavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></div>
+                                <div><h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Painel de Estudos</h2><p className="text-slate-500 dark:text-slate-400">Gestão e análise de produtividade.</p></div>
+                                <div className="text-left sm:text-right bg-white dark:bg-slate-900 sm:bg-transparent p-4 sm:p-0 rounded-xl border sm:border-none border-slate-100 dark:border-slate-800 shadow-sm sm:shadow-none"><p className="text-sm font-bold text-slate-400 uppercase">Economia Total (Mês)</p><p className="text-2xl font-bold text-emerald-600">{totalSavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></div>
                             </header>
                             {studies.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-80 sm:h-96 bg-white rounded-3xl border border-slate-200 border-dashed text-center p-6"><div className="bg-slate-50 p-6 rounded-full mb-4"><LayoutDashboard className="w-12 h-12 text-slate-300" /></div><h3 className="text-xl font-bold text-slate-700">Nenhum estudo encontrado</h3><button onClick={handleCreateNew} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors mt-4">Criar Estudo</button></div>
+                                <div className="flex flex-col items-center justify-center h-80 sm:h-96 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed text-center p-6"><div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-full mb-4"><LayoutDashboard className="w-12 h-12 text-slate-300 dark:text-slate-600" /></div><h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Nenhum estudo encontrado</h3><button onClick={handleCreateNew} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors mt-4">Criar Estudo</button></div>
                             ) : (
-                                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left min-w-[600px]"><thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-400 font-bold"><tr><th className="px-6 py-4">Título</th><th className="px-6 py-4 text-center">Data</th><th className="px-6 py-4 text-center">Atual (min)</th><th className="px-6 py-4 text-center">Proposto (min)</th><th className="px-6 py-4 text-center">Ganho</th><th className="px-6 py-4 text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-100">{studies.map(study => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const c = calc(study.currentMotions); const p = calc(study.proposedMotions); const gain = c > 0 ? ((c - p) / c) * 100 : 0; return (<tr key={study.id} onClick={() => handleOpenStudy(study.id)} className="hover:bg-slate-50 cursor-pointer transition-colors group"><td className="px-6 py-4 font-bold text-slate-800">{study.title}</td><td className="px-6 py-4 text-center text-slate-500 text-sm">{new Date(study.updatedAt).toLocaleDateString()}</td><td className="px-6 py-4 text-center font-mono text-slate-600">{c.toFixed(3)}</td><td className="px-6 py-4 text-center font-mono text-slate-600">{p.toFixed(3)}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${gain > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>{gain > 0 ? `-${gain.toFixed(1)}%` : '-'}</span></td><td className="px-6 py-4 text-right"><button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(study.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={16} /></button></td></tr>); })}</tbody></table></div></div>
+                                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left min-w-[600px]"><thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800 text-xs uppercase text-slate-400 font-bold"><tr><th className="px-6 py-4">Título</th><th className="px-6 py-4 text-center">Data</th><th className="px-6 py-4 text-center">Atual (min)</th><th className="px-6 py-4 text-center">Proposto (min)</th><th className="px-6 py-4 text-center">Ganho</th><th className="px-6 py-4 text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{studies.map(study => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const c = calc(study.currentMotions); const p = calc(study.proposedMotions); const gain = c > 0 ? ((c - p) / c) * 100 : 0; return (<tr key={study.id} onClick={() => handleOpenStudy(study.id)} className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"><td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{study.title}</td><td className="px-6 py-4 text-center text-slate-500 dark:text-slate-400 text-sm">{new Date(study.updatedAt).toLocaleDateString()}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{c.toFixed(3)}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{p.toFixed(3)}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${gain > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{gain > 0 ? `-${gain.toFixed(1)}%` : '-'}</span></td><td className="px-6 py-4 text-right"><button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(study.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button></td></tr>); })}</tbody></table></div></div>
                             )}
                         </>
                     ) : ( <MTMReferenceTable /> )}
@@ -260,7 +278,7 @@ export default function App() {
   );
 }
 
-// --- Editor & ResultsView (Applying fixes: Formatting, Formulas, Print Layout) ---
+// --- Editor & ResultsView ---
 
 function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, setActiveTab, wizardOpen, setWizardOpen, aiModalOpen, setAiModalOpen, onPrint }: any) {
     useEffect(() => { const t = setTimeout(() => { onSave(); }, 1000); return () => clearTimeout(t); }, [data]);
@@ -275,7 +293,6 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
     const curMin = calcTotal(data.currentMotions) * 0.0006 * factor;
     const proMin = calcTotal(data.proposedMotions) * 0.0006 * factor;
     const saving = Math.max(0, curMin - proMin);
-    const savingPct = curMin > 0 ? ((curMin - proMin)/curMin)*100 : 0;
 
     const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
     const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
@@ -285,7 +302,6 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
     const minutesPerHour = roi.minutesPerHour || 60;
     const curPcsH = curMin > 0 ? minutesPerHour / curMin : 0;
     const proPcsH = proMin > 0 ? minutesPerHour / proMin : 0;
-    // Formula: (NewProd - OldProd) / OldProd * 100
     const prodIncrease = curPcsH > 0 ? ((proPcsH - curPcsH) / curPcsH) * 100 : 0;
 
     const handleAddMotion = (motion: Motion) => {
@@ -304,21 +320,21 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 animate-in fade-in duration-300 print:h-auto print:overflow-visible relative">
-            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-3 sm:px-4 z-30 shrink-0 print:hidden">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300 print:h-auto print:overflow-visible relative">
+            <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 sm:px-4 z-30 shrink-0 print:hidden">
                 <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden">
-                    <button onClick={onBack} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors shrink-0"><ArrowLeft size={20}/></button>
-                    <input value={data.title} onChange={(e) => setData({...data, title: e.target.value})} className="font-bold text-base sm:text-lg text-slate-800 bg-transparent border-none p-0 focus:ring-0 placeholder-slate-300 w-full outline-none truncate" placeholder="Nome da Operação..." />
-                    <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded shrink-0"><CheckCircle size={10} className="text-emerald-500"/> Salvo</div>
+                    <button onClick={onBack} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors shrink-0"><ArrowLeft size={20}/></button>
+                    <input value={data.title} onChange={(e) => setData({...data, title: e.target.value})} className="font-bold text-base sm:text-lg text-slate-800 dark:text-white bg-transparent border-none p-0 focus:ring-0 placeholder-slate-300 w-full outline-none truncate" placeholder="Nome da Operação..." />
+                    <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded shrink-0"><CheckCircle size={10} className="text-emerald-500"/> Salvo</div>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                    <button onClick={onPrint} className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Printer size={16}/> <span className="hidden sm:inline">Imprimir</span></button>
+                    <button onClick={onPrint} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Printer size={16}/> <span className="hidden sm:inline">Imprimir</span></button>
                     <button onClick={onOpenSimulation} className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors shadow-lg shadow-purple-500/20"><MonitorPlay size={16}/> <span className="hidden sm:inline">Simular</span></button>
-                    <button onClick={() => setActiveTab('results')} className="p-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Calculator size={16}/> <span className="hidden sm:inline">Resultados</span></button>
+                    <button onClick={() => setActiveTab('results')} className="p-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Calculator size={16}/> <span className="hidden sm:inline">Resultados</span></button>
                 </div>
             </header>
 
-            {/* FULL REPORT PRINT VIEW */}
+            {/* FULL REPORT PRINT VIEW (Keep light mode for print) */}
             <div className="hidden print:block fixed inset-0 z-[100] bg-white text-black p-8 overflow-visible h-auto">
                 <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4 mb-8">
                     <div><h1 className="text-2xl font-bold text-slate-900 uppercase tracking-wide">Relatório de Análise Operacional</h1><p className="text-sm text-slate-600 mt-1">Método MTM-1 (Methods-Time Measurement)</p></div>
@@ -333,13 +349,13 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 break-inside-avoid"><p className="text-xs font-bold text-slate-400 uppercase mb-1">Método Proposto</p><p className="text-2xl font-mono font-bold text-slate-700">{proMin.toFixed(3)} <span className="text-sm text-slate-400">min</span></p></div>
                     <div className={`p-4 rounded-xl border break-inside-avoid ${saving > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}><p className={`text-xs font-bold uppercase mb-1 ${saving > 0 ? 'text-emerald-600' : 'text-red-600'}`}>Aumento Produtividade</p><p className={`text-2xl font-mono font-bold ${saving > 0 ? 'text-emerald-700' : 'text-red-700'}`}>{prodIncrease.toFixed(1)}%</p></div>
                 </div>
-                <div className="grid grid-cols-4 gap-4 mb-8 break-inside-avoid">
+                {/* ... (Rest of print view same as before, ensures light mode) */}
+                 <div className="grid grid-cols-4 gap-4 mb-8 break-inside-avoid">
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200"><p className="text-[10px] font-bold text-slate-400 uppercase">Redução de Tempo</p><p className="text-lg font-bold text-slate-800">{(curMin - proMin).toFixed(3)} min</p></div>
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200"><p className="text-[10px] font-bold text-slate-400 uppercase">Horas Ganhas/Ano</p><p className="text-lg font-bold text-slate-800">{((curMin - proMin) * roi.volume * (roi.daysPerMonth || 22) * 12 / 60).toFixed(1)} h</p></div>
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200"><p className="text-[10px] font-bold text-slate-400 uppercase">Peças/Hora (Novo)</p><p className="text-lg font-bold text-slate-800">{proPcsH.toFixed(0)}</p></div>
                     <div className="p-3 bg-slate-50 rounded-lg border border-slate-200"><p className="text-[10px] font-bold text-slate-400 uppercase">Retorno (Payback)</p><p className="text-lg font-bold text-slate-800">{(roi.invest || 0) > 0 ? `${payback.toFixed(1)} meses` : '-'}</p></div>
                 </div>
-                {/* Tables */}
                 <div className="grid grid-cols-2 gap-8 mb-8">
                     <div>
                         <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Atual</h3>
@@ -363,7 +379,7 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
             </div>
 
             <div className="flex-1 flex flex-col print:hidden overflow-hidden">
-                <div className="bg-white border-b border-slate-200 flex justify-start sm:justify-center shrink-0 shadow-sm z-20 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-start sm:justify-center shrink-0 shadow-sm z-20 overflow-x-auto whitespace-nowrap scrollbar-hide">
                     <TabButton active={activeTab === 'config'} onClick={() => setActiveTab('config')} icon={<Settings2 size={18}/>} />
                     <TabButton active={activeTab === 'current'} onClick={() => setActiveTab('current')} label="1. Atual" />
                     <TabButton active={activeTab === 'proposed'} onClick={() => setActiveTab('proposed')} label="2. Proposto" />
@@ -372,31 +388,31 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                 <div className="flex-1 flex overflow-hidden relative">
                     {activeTab === 'config' && (
                         <div className="flex-1 p-4 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="max-w-xl mx-auto bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
-                                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800"><Settings2 className="text-red-600"/> Configurações</h2>
+                            <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800 dark:text-white"><Settings2 className="text-red-600"/> Configurações</h2>
                                 <div className="space-y-6">
-                                    <div><label className="block text-sm font-bold text-slate-700 mb-2">Nome do Analista</label><input value={data.analyst || ''} onChange={(e) => setData({...data, analyst: e.target.value})} placeholder="Ex: João Silva" className="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:ring-2 ring-red-500 font-medium outline-none text-slate-900" /></div>
-                                    <div><label className="block text-sm font-bold text-slate-700 mb-2">Tolerância (%)</label><div className="flex items-center gap-4"><input type="range" min="0" max="30" step="0.5" value={data.tolerance} onChange={(e) => setData({...data, tolerance: parseFloat(e.target.value)})} className="flex-1 h-2 bg-slate-200 rounded-lg accent-red-600" /><span className="font-mono font-bold text-xl w-16 text-right text-slate-800">{data.tolerance}%</span></div></div>
-                                    <div><label className="block text-sm font-bold text-slate-700 mb-2">Dias por Mês (Base de Cálculo)</label><input type="number" value={roi.daysPerMonth || 22} onChange={(e) => setData({...data, roi: {...roi, daysPerMonth: parseFloat(e.target.value)}})} className="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:ring-2 ring-red-500 font-mono font-bold outline-none text-slate-900" /></div>
-                                    <div><label className="block text-sm font-bold text-slate-700 mb-2">Minutos Produtivos por Hora</label><input type="number" value={roi.minutesPerHour ?? 60} onChange={(e) => setData({...data, roi: {...roi, minutesPerHour: parseFloat(e.target.value)}})} className="w-full px-4 py-2 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:ring-2 ring-red-500 font-mono font-bold outline-none text-slate-900" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome do Analista</label><input value={data.analyst || ''} onChange={(e) => setData({...data, analyst: e.target.value})} placeholder="Ex: João Silva" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 ring-red-500 font-medium outline-none text-slate-900 dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tolerância (%)</label><div className="flex items-center gap-4"><input type="range" min="0" max="30" step="0.5" value={data.tolerance} onChange={(e) => setData({...data, tolerance: parseFloat(e.target.value)})} className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg accent-red-600" /><span className="font-mono font-bold text-xl w-16 text-right text-slate-800 dark:text-white">{data.tolerance}%</span></div></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Dias por Mês (Base de Cálculo)</label><input type="number" value={roi.daysPerMonth || 22} onChange={(e) => setData({...data, roi: {...roi, daysPerMonth: parseFloat(e.target.value)}})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 ring-red-500 font-mono font-bold outline-none text-slate-900 dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Minutos Produtivos por Hora</label><input type="number" value={roi.minutesPerHour ?? 60} onChange={(e) => setData({...data, roi: {...roi, minutesPerHour: parseFloat(e.target.value)}})} className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 ring-red-500 font-mono font-bold outline-none text-slate-900 dark:text-white" /></div>
                                 </div>
                             </div>
                         </div>
                     )}
                     {(activeTab === 'current' || activeTab === 'proposed') && (
                         <>
-                            <div className="flex-1 flex flex-col relative bg-slate-50/50">
-                                <div className="bg-white px-4 sm:px-6 py-3 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
+                            <div className="flex-1 flex flex-col relative bg-slate-50/50 dark:bg-slate-900/50">
+                                <div className="bg-white dark:bg-slate-900 px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10">
                                     <div className="flex gap-2 sm:gap-4 text-xs font-medium">
-                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 rounded border border-slate-200 text-slate-600 flex flex-col sm:flex-row sm:gap-1"><span>Min (+{data.tolerance}%):</span> <strong className="text-slate-900">{totalMin.toFixed(3)}</strong></div>
-                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 rounded border border-slate-200 text-slate-600 hidden sm:flex gap-1"><span>TMU Base:</span> <strong className="text-slate-900">{totalTMU.toFixed(1)}</strong></div>
+                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row sm:gap-1"><span>Min (+{data.tolerance}%):</span> <strong className="text-slate-900 dark:text-white">{totalMin.toFixed(3)}</strong></div>
+                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hidden sm:flex gap-1"><span>TMU Base:</span> <strong className="text-slate-900 dark:text-white">{totalTMU.toFixed(1)}</strong></div>
                                     </div>
-                                    <button onClick={() => setWizardOpen(!wizardOpen)} className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${wizardOpen ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500 hover:text-slate-800'}`} title="Assistente"><Wand2 size={16}/></button>
+                                    <button onClick={() => setWizardOpen(!wizardOpen)} className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${wizardOpen ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`} title="Assistente"><Wand2 size={16}/></button>
                                 </div>
                                 <div className="flex-1 overflow-y-auto p-2 sm:p-4 pb-48 sm:pb-32">{activeMotions.length === 0 ? (<div className="h-full flex flex-col items-center justify-center opacity-40"><Hand size={48} className="mb-4 text-slate-400" /><p className="text-center px-4 text-slate-500">Adicione movimentos usando a barra abaixo ou o Assistente.</p></div>) : (<div className="max-w-3xl mx-auto space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">{activeMotions.map((m: Motion, i: number) => (<MotionCard key={i} motion={m} index={i} onDelete={() => handleRemoveMotion(i)} onMoveUp={() => handleMoveMotion(i, 'up')} onMoveDown={() => handleMoveMotion(i, 'down')}/>))}</div>)}</div>
-                                <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-3 sm:p-4 z-20 flex justify-center shadow-sm"><div className="w-full max-w-3xl flex flex-col sm:flex-row gap-2"><button onClick={() => setAiModalOpen(true)} className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"><Bot size={24} /> <span className="sm:hidden font-bold">Assistente IA</span></button><ManualInput onAdd={handleAddMotion} /></div></div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-20 flex justify-center shadow-sm"><div className="w-full max-w-3xl flex flex-col sm:flex-row gap-2"><button onClick={() => setAiModalOpen(true)} className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all flex items-center justify-center gap-2"><Bot size={24} /> <span className="sm:hidden font-bold">Assistente IA</span></button><ManualInput onAdd={handleAddMotion} /></div></div>
                             </div>
-                            <div className={`${wizardOpen ? 'fixed inset-0 lg:relative lg:inset-auto z-50 lg:z-auto w-full lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0 lg:pointer-events-none fixed right-0'} transition-all duration-300 bg-white ${wizardOpen ? 'border-l border-slate-200' : 'border-none'} flex flex-col shadow-2xl lg:shadow-none`}><div className="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center shrink-0"><h3 className="font-bold text-slate-700 flex items-center gap-2"><Wand2 size={16} className="text-red-600"/> Assistente Visual</h3><button onClick={() => setWizardOpen(false)} className="lg:hidden p-2 bg-slate-200 rounded-full hover:bg-slate-300"><X size={20}/></button></div><div className="flex-1 overflow-y-auto"><Wizard onAdd={handleAddMotion} /></div></div>
+                            <div className={`${wizardOpen ? 'fixed inset-0 lg:relative lg:inset-auto z-50 lg:z-auto w-full lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0 lg:pointer-events-none fixed right-0'} transition-all duration-300 bg-white dark:bg-slate-900 ${wizardOpen ? 'border-l border-slate-200 dark:border-slate-800' : 'border-none'} flex flex-col shadow-2xl lg:shadow-none`}><div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0"><h3 className="font-bold text-slate-700 dark:text-white flex items-center gap-2"><Wand2 size={16} className="text-red-600"/> Assistente Visual</h3><button onClick={() => setWizardOpen(false)} className="lg:hidden p-2 bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white"><X size={20}/></button></div><div className="flex-1 overflow-y-auto"><Wizard onAdd={handleAddMotion} /></div></div>
                         </>
                     )}
                     {activeTab === 'results' && <ResultsView data={data} setData={setData} />}
@@ -412,7 +428,7 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
 const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon?: React.ReactNode, label?: string }) => (
   <button
     onClick={onClick}
-    className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${active ? 'bg-slate-900 text-white shadow-lg' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}
+    className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${active ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
   >
     {icon} {label}
   </button>
@@ -423,16 +439,17 @@ const MotionCard = ({ motion, index, onDelete, onMoveUp, onMoveDown }: { motion:
     let badgeColor = "bg-slate-500";
     let typeLabel = "CORPO";
 
+    // Dark mode classes applied here
     if (motion.hand === 'E') {
-        containerClass += " mr-auto bg-blue-50 border-blue-100";
+        containerClass += " mr-auto bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30";
         badgeColor = "bg-blue-500";
         typeLabel = "ESQ";
     } else if (motion.hand === 'D') {
-        containerClass += " ml-auto bg-red-50 border-red-100";
+        containerClass += " ml-auto bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30";
         badgeColor = "bg-red-500";
         typeLabel = "DIR";
     } else {
-        containerClass += " mx-auto bg-slate-50 border-slate-200 text-center w-[95%]";
+        containerClass += " mx-auto bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-center w-[95%]";
         badgeColor = "bg-slate-500";
         typeLabel = "CORPO";
     }
@@ -442,27 +459,27 @@ const MotionCard = ({ motion, index, onDelete, onMoveUp, onMoveDown }: { motion:
         <div className={`flex items-center gap-3 ${motion.hand === 'C' ? 'justify-center w-full' : ''}`}>
             <span className={`text-[10px] font-bold w-6 h-6 flex items-center justify-center rounded-md text-white ${badgeColor} shrink-0`}>{index + 1}</span>
             <div className={motion.hand === 'C' ? 'flex flex-col items-center' : ''}>
-                <div className="text-sm font-bold text-slate-700 leading-tight">{motion.desc}</div>
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-200 leading-tight">{motion.desc}</div>
                 <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2 justify-center">
-                    <span className="font-bold text-slate-500 bg-white/50 px-1 rounded border border-slate-200/50">{typeLabel}</span>
+                    <span className="font-bold text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-black/30 px-1 rounded border border-slate-200/50 dark:border-slate-700">{typeLabel}</span>
                     <span>{motion.code}</span>
-                    {motion.freq > 1 && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-bold ml-1">{motion.freq}x</span>}
+                    {motion.freq > 1 && <span className="px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded font-bold ml-1">{motion.freq}x</span>}
                 </div>
             </div>
         </div>
 
         <div className={`flex items-center gap-2 ${motion.hand === 'C' ? 'absolute right-4' : ''}`}>
             <div className="text-right mr-2">
-                <span className="font-mono text-slate-600 font-bold block">{(motion.tmu * (motion.freq || 1)).toFixed(1)}</span>
+                <span className="font-mono text-slate-600 dark:text-slate-300 font-bold block">{(motion.tmu * (motion.freq || 1)).toFixed(1)}</span>
             </div>
 
             {/* Reorder Controls */}
             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={onMoveUp} className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded"><ChevronUp size={14}/></button>
-                <button onClick={onMoveDown} className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded"><ChevronDown size={14}/></button>
+                <button onClick={onMoveUp} className="p-0.5 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded"><ChevronUp size={14}/></button>
+                <button onClick={onMoveDown} className="p-0.5 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded"><ChevronDown size={14}/></button>
             </div>
 
-            <button onClick={onDelete} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+            <button onClick={onDelete} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
                 <Trash2 size={16} />
             </button>
         </div>
@@ -498,26 +515,26 @@ const ManualInput = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
 
     return (
         <form onSubmit={handleSubmit} className="flex-1 relative flex items-center gap-2">
-            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl w-full overflow-hidden focus-within:ring-2 focus-within:ring-red-500 transition-shadow">
-                <div className="bg-slate-100 border-r border-slate-200 px-2 py-1 flex flex-col items-center justify-center w-14 shrink-0">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Qtd</span>
-                    <input type="number" min="1" value={freq} onChange={e => setFreq(parseInt(e.target.value))} className="w-full bg-transparent text-center font-bold text-sm outline-none text-slate-700 p-0" />
+            <div className="flex items-center bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl w-full overflow-hidden focus-within:ring-2 focus-within:ring-red-500 transition-shadow">
+                <div className="bg-slate-100 dark:bg-slate-700 border-r border-slate-200 dark:border-slate-600 px-2 py-1 flex flex-col items-center justify-center w-14 shrink-0">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-300 font-bold uppercase">Qtd</span>
+                    <input type="number" min="1" value={freq} onChange={e => setFreq(parseInt(e.target.value))} className="w-full bg-transparent text-center font-bold text-sm outline-none text-slate-700 dark:text-white p-0" />
                 </div>
 
-                <div className="flex border-r border-slate-200 shrink-0">
-                    <button type="button" onClick={() => setHand('E')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors border-r border-slate-100 ${hand === 'E' ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>E</button>
-                    <button type="button" onClick={() => setHand('D')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors ${hand === 'D' ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>D</button>
+                <div className="flex border-r border-slate-200 dark:border-slate-600 shrink-0">
+                    <button type="button" onClick={() => setHand('E')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors border-r border-slate-100 dark:border-slate-600 ${hand === 'E' ? 'bg-red-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>E</button>
+                    <button type="button" onClick={() => setHand('D')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors ${hand === 'D' ? 'bg-red-600 text-white' : 'bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>D</button>
                 </div>
 
                 <input
                     value={val}
                     onChange={(e) => setVal(e.target.value.toUpperCase())}
                     placeholder={error ? "Inválido" : "Código..."}
-                    className={`w-full h-full pl-4 pr-12 py-3 bg-transparent border-none text-sm font-mono uppercase outline-none text-slate-800 ${error ? 'placeholder-red-400' : 'placeholder-slate-400'}`}
+                    className={`w-full h-full pl-4 pr-12 py-3 bg-transparent border-none text-sm font-mono uppercase outline-none text-slate-800 dark:text-white ${error ? 'placeholder-red-400' : 'placeholder-slate-400'}`}
                 />
             </div>
 
-            <button type="submit" className="p-3 bg-slate-200 hover:bg-slate-300 rounded-xl text-slate-600 transition-colors">
+            <button type="submit" className="p-3 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-xl text-slate-600 dark:text-slate-200 transition-colors">
                 <ArrowDownToLine size={20} />
             </button>
         </form>
@@ -558,18 +575,76 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
     const limbDataCurrent = getLimbData(data.currentMotions);
     const limbDataProposed = getLimbData(data.proposedMotions);
 
+    // Ergonomic Analysis Summary
+    const countRisks = (motions: Motion[]) => {
+        let high = 0, medium = 0;
+        motions.forEach(m => {
+            const res = analyzeErgonomics(m);
+            if (res.riskLevel === 'High') high++;
+            if (res.riskLevel === 'Medium') medium++;
+        });
+        return { high, medium };
+    };
+    const curRisks = countRisks(data.currentMotions);
+    const proRisks = countRisks(data.proposedMotions);
+
     return (
         <div className="flex-1 p-4 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
             <div className="max-w-4xl mx-auto space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Atual</p><p className="text-3xl font-mono font-bold text-slate-700">{safeC.toFixed(3)} <span className="text-sm">min</span></p></div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Proposto</p><p className="text-3xl font-mono font-bold text-slate-700">{safeP.toFixed(3)} <span className="text-sm">min</span></p></div>
-                    <div className={`p-6 rounded-2xl shadow-sm border ${prodIncrease > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200'}`}><p className="text-xs font-bold text-slate-400 uppercase mb-2">Aumento Produtividade</p><p className={`text-3xl font-mono font-bold ${prodIncrease > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{prodIncrease.toFixed(1)}%</p></div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800"><p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Atual</p><p className="text-3xl font-mono font-bold text-slate-700 dark:text-slate-200">{safeC.toFixed(3)} <span className="text-sm">min</span></p></div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800"><p className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Proposto</p><p className="text-3xl font-mono font-bold text-slate-700 dark:text-slate-200">{safeP.toFixed(3)} <span className="text-sm">min</span></p></div>
+                    <div className={`p-6 rounded-2xl shadow-sm border ${prodIncrease > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}><p className="text-xs font-bold text-slate-400 uppercase mb-2">Aumento Produtividade</p><p className={`text-3xl font-mono font-bold ${prodIncrease > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{prodIncrease.toFixed(1)}%</p></div>
                 </div>
+
+                {/* Charts Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-80"><h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4"/> Comparativo de Tempo</h3><div className="flex-1 w-full min-h-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}><XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} /><YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} /><Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} /><Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} />))}</Bar></BarChart></ResponsiveContainer></div></div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-80"><h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Hand className="w-4 h-4"/> Uso dos Membros (Atual vs Proposto)</h3><div className="flex-1 w-full min-h-0 flex"><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Atual</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataCurrent} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>{limbDataCurrent.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip /></RePieChart></ResponsiveContainer></div><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Proposto</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataProposed} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>{limbDataProposed.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip /></RePieChart></ResponsiveContainer></div></div></div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Calculadora ROI</h3><div className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Custo Minuto (R$)</label><input type="number" step="0.01" value={roi.costMin} onChange={(e) => setData({...data, roi: {...roi, costMin: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" /></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Peças/Dia</label><input type="number" value={roi.volume} onChange={(e) => setData({...data, roi: {...roi, volume: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Investimento (R$)</label><input type="number" step="100" value={roi.invest || 0} onChange={(e) => setData({...data, roi: {...roi, invest: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" placeholder="0.00" /></div><div className="pt-4 border-t border-slate-100 space-y-2"><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500">Economia Mensal</span><span className="font-mono font-bold text-emerald-600 text-lg">{monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500">Economia Anual</span><span className="font-mono font-bold text-emerald-600 text-lg">{(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>{(roi.invest || 0) > 0 && (<div className="flex justify-between items-center mt-2 p-2 bg-slate-100/50 rounded-lg border border-slate-200"><span className="text-sm font-bold text-slate-600">Retorno (Payback)</span><span className={`font-mono font-bold text-lg ${payback > 12 ? 'text-red-500' : 'text-emerald-600'}`}>{payback.toFixed(1)} meses</span></div>)}</div></div></div></div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80"><h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4"/> Comparativo de Tempo</h3><div className="flex-1 w-full min-h-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}><XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} /><YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} /><Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#94a3b8'}} /><Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} />))}</Bar></BarChart></ResponsiveContainer></div></div>
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80"><h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><Hand className="w-4 h-4"/> Uso dos Membros (Atual vs Proposto)</h3><div className="flex-1 w-full min-h-0 flex"><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Atual</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataCurrent} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60} stroke="none">{limbDataCurrent.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}/></RePieChart></ResponsiveContainer></div><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Proposto</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataProposed} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60} stroke="none">{limbDataProposed.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}/></RePieChart></ResponsiveContainer></div></div></div>
+                </div>
+
+                {/* Ergonomics & ROI Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Ergonomics Card */}
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+                         <h3 className="font-bold text-slate-700 dark:text-white mb-6 flex items-center gap-2"><Activity className="w-4 h-4 text-orange-500"/> Análise Ergonômica</h3>
+                         <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Atual</p>
+                                <div className="flex justify-around">
+                                    <div className="text-center">
+                                        <span className="block text-2xl font-bold text-red-500">{curRisks.high}</span>
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Alto Risco</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="block text-2xl font-bold text-orange-500">{curRisks.medium}</span>
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Médio Risco</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                <p className="text-xs font-bold text-slate-400 uppercase mb-2 text-center">Proposto</p>
+                                <div className="flex justify-around">
+                                    <div className="text-center">
+                                        <span className={`block text-2xl font-bold ${proRisks.high < curRisks.high ? 'text-emerald-500' : 'text-red-500'}`}>{proRisks.high}</span>
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Alto Risco</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <span className={`block text-2xl font-bold ${proRisks.medium < curRisks.medium ? 'text-emerald-500' : 'text-orange-500'}`}>{proRisks.medium}</span>
+                                        <span className="text-[10px] uppercase font-bold text-slate-400">Médio Risco</span>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-600 dark:text-blue-300 flex items-center gap-2">
+                            <Info size={16} className="shrink-0"/>
+                            <span>Redução de riscos ergonômicos melhora a qualidade de vida e reduz fadiga.</span>
+                         </div>
+                    </div>
+
+                    {/* ROI Calculator */}
+                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800"><h3 className="font-bold text-slate-700 dark:text-white mb-6 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Calculadora ROI</h3><div className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Custo Minuto (R$)</label><input type="number" step="0.01" value={roi.costMin} onChange={(e) => setData({...data, roi: {...roi, costMin: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" /></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Peças/Dia</label><input type="number" value={roi.volume} onChange={(e) => setData({...data, roi: {...roi, volume: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Investimento (R$)</label><input type="number" step="100" value={roi.invest || 0} onChange={(e) => setData({...data, roi: {...roi, invest: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" placeholder="0.00" /></div><div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2"><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Mensal</span><span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">{monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Anual</span><span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">{(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>{(roi.invest || 0) > 0 && (<div className="flex justify-between items-center mt-2 p-2 bg-slate-100/50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"><span className="text-sm font-bold text-slate-600 dark:text-slate-300">Retorno (Payback)</span><span className={`font-mono font-bold text-lg ${payback > 12 ? 'text-red-500' : 'text-emerald-600'}`}>{payback.toFixed(1)} meses</span></div>)}</div></div></div>
+                </div>
             </div>
         </div>
     );
@@ -793,7 +868,7 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
     // Categories UI
     if (!category) {
         return (
-            <div className="flex flex-col h-full bg-slate-50">
+            <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
                 <div className="p-4 grid grid-cols-2 gap-3 overflow-y-auto">
                     {[
                         { id: 'R', label: 'Mão Vazia', sub: 'Alcançar', icon: <Hand size={20}/>, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' },
@@ -807,10 +882,10 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                         { id: 'E', label: 'Olhos', sub: 'Focar/Mover', icon: <Eye size={20}/>, color: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-400' },
                         { id: 'B', label: 'Corpo/Pé', sub: 'Andar/Agachar', icon: <Footprints size={20}/>, color: 'text-slate-600 bg-slate-100/50' },
                     ].map(c => (
-                        <button key={c.id} onClick={() => handleSelectCategory(c.id)} className="p-4 bg-white border border-slate-100 hover:border-red-400 rounded-xl text-left shadow-sm group transition-all flex flex-col gap-2">
+                        <button key={c.id} onClick={() => handleSelectCategory(c.id)} className="p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 hover:border-red-400 rounded-xl text-left shadow-sm group transition-all flex flex-col gap-2">
                             <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${c.color} group-hover:bg-red-600 group-hover:text-white`}>{c.icon}</div>
                             <div>
-                                <span className="block font-bold text-slate-700 text-sm">{c.label}</span>
+                                <span className="block font-bold text-slate-700 dark:text-white text-sm">{c.label}</span>
                                 <span className="text-xs text-slate-400">{c.sub}</span>
                             </div>
                         </button>
@@ -823,10 +898,10 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
     // Config UI
     const cfg = H_CFG[category];
     return (
-        <div className="flex flex-col h-full bg-slate-50">
-             <div className="p-4 border-b border-slate-100 bg-white flex items-center gap-2">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
+             <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 flex items-center gap-2">
                  <button onClick={handleBack} className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1"><ArrowLeft size={14}/> Voltar</button>
-                 <span className="font-bold text-slate-700 ml-auto">{cfg.title}</span>
+                 <span className="font-bold text-slate-700 dark:text-white ml-auto">{cfg.title}</span>
              </div>
 
              <div className="flex-1 p-4 overflow-y-auto space-y-6">
@@ -838,7 +913,7 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
 
                      return (
                          <div key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{q.l}</label>
+                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-2">{q.l}</label>
 
                              {q.t === 'r' ? (
                                  <div>
@@ -846,7 +921,7 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                                      <input
                                         type="range" min={q.min} max={q.max} value={currentVal}
                                         onChange={(e) => setParams({...params, [q.id]: parseInt(e.target.value)})}
-                                        className="w-full h-2 bg-slate-200 rounded-lg accent-red-600 cursor-pointer"
+                                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg accent-red-600 cursor-pointer"
                                      />
                                  </div>
                              ) : (
@@ -857,9 +932,9 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                                              <button
                                                 key={opt.v}
                                                 onClick={() => setParams({...params, [q.id]: opt.v})}
-                                                className={`p-2 rounded border text-left transition-all ${active ? 'bg-red-50 dark:bg-red-900/30 border-red-500 ring-1 ring-red-500' : 'bg-white border-slate-200 hover:border-red-300'}`}
+                                                className={`p-2 rounded border text-left transition-all ${active ? 'bg-red-50 dark:bg-red-900/30 border-red-500 ring-1 ring-red-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-red-300'}`}
                                              >
-                                                 <div className={`font-bold text-sm ${active ? 'text-red-700 dark:text-red-400' : 'text-slate-700'}`}>{opt.t}</div>
+                                                 <div className={`font-bold text-sm ${active ? 'text-red-700 dark:text-red-400' : 'text-slate-700 dark:text-white'}`}>{opt.t}</div>
                                                  <div className={`text-xs ${active ? 'text-red-400' : 'text-slate-400'}`}>{opt.s}</div>
                                              </button>
                                          )
@@ -871,8 +946,8 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                  })}
              </div>
 
-             {/* Dark Preview Box (Already dark, but container needs check) */}
-             <div className="p-4 bg-slate-50">
+             {/* Dark Preview Box */}
+             <div className="p-4 bg-slate-50 dark:bg-slate-900">
                 <div className="bg-slate-900 dark:bg-black rounded-xl p-4 text-white shadow-lg">
                     <div className="flex justify-between items-start mb-2">
                         <div>
