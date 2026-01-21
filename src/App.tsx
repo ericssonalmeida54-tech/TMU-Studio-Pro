@@ -20,12 +20,6 @@ import { Simulation } from './components/Simulation';
 
 // ... (TutorialOverlay, ConfirmModal, AIModal, HelpTip, MTMReferenceTable, App, Editor, Sub Components, Wizard Configuration, Wizard remain the same)
 
-// Only modifying Editor and ResultsView, but I need to provide the full file content or use a targeted replace.
-// Since the file is large, I will use replace_with_git_merge_diff for precision on Editor and ResultsView.
-// But first I need to make sure I have the previous steps fully committed or I might lose context.
-// Wait, I am in a write_file action. I should write the WHOLE file.
-// I will re-construct the whole file with the changes requested.
-
 const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto print:hidden">
     <div className="bg-white max-w-2xl w-full rounded-2xl p-6 sm:p-8 shadow-2xl relative my-auto">
@@ -413,7 +407,122 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
     );
 }
 
-// ... TabButton, MotionCard, ManualInput are mostly style adjustments, will include.
+// --- Sub Components ---
+
+const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon?: React.ReactNode, label?: string }) => (
+  <button
+    onClick={onClick}
+    className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${active ? 'bg-slate-900 text-white shadow-lg' : 'bg-transparent text-slate-500 hover:bg-slate-100'}`}
+  >
+    {icon} {label}
+  </button>
+);
+
+const MotionCard = ({ motion, index, onDelete, onMoveUp, onMoveDown }: { motion: Motion, index: number, onDelete: () => void, onMoveUp: () => void, onMoveDown: () => void }) => {
+    let containerClass = "w-3/4 flex items-center justify-between p-3 rounded-xl border shadow-sm transition-all group relative fade-in mb-1";
+    let badgeColor = "bg-slate-500";
+    let typeLabel = "CORPO";
+
+    if (motion.hand === 'E') {
+        containerClass += " mr-auto bg-blue-50 border-blue-100";
+        badgeColor = "bg-blue-500";
+        typeLabel = "ESQ";
+    } else if (motion.hand === 'D') {
+        containerClass += " ml-auto bg-red-50 border-red-100";
+        badgeColor = "bg-red-500";
+        typeLabel = "DIR";
+    } else {
+        containerClass += " mx-auto bg-slate-50 border-slate-200 text-center w-[95%]";
+        badgeColor = "bg-slate-500";
+        typeLabel = "CORPO";
+    }
+
+  return (
+    <div className={containerClass}>
+        <div className={`flex items-center gap-3 ${motion.hand === 'C' ? 'justify-center w-full' : ''}`}>
+            <span className={`text-[10px] font-bold w-6 h-6 flex items-center justify-center rounded-md text-white ${badgeColor} shrink-0`}>{index + 1}</span>
+            <div className={motion.hand === 'C' ? 'flex flex-col items-center' : ''}>
+                <div className="text-sm font-bold text-slate-700 leading-tight">{motion.desc}</div>
+                <div className="text-xs text-slate-400 font-mono mt-0.5 flex items-center gap-2 justify-center">
+                    <span className="font-bold text-slate-500 bg-white/50 px-1 rounded border border-slate-200/50">{typeLabel}</span>
+                    <span>{motion.code}</span>
+                    {motion.freq > 1 && <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded font-bold ml-1">{motion.freq}x</span>}
+                </div>
+            </div>
+        </div>
+
+        <div className={`flex items-center gap-2 ${motion.hand === 'C' ? 'absolute right-4' : ''}`}>
+            <div className="text-right mr-2">
+                <span className="font-mono text-slate-600 font-bold block">{(motion.tmu * (motion.freq || 1)).toFixed(1)}</span>
+            </div>
+
+            {/* Reorder Controls */}
+            <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={onMoveUp} className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded"><ChevronUp size={14}/></button>
+                <button onClick={onMoveDown} className="p-0.5 text-slate-400 hover:text-slate-800 hover:bg-slate-200 rounded"><ChevronDown size={14}/></button>
+            </div>
+
+            <button onClick={onDelete} className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                <Trash2 size={16} />
+            </button>
+        </div>
+    </div>
+  );
+};
+
+const ManualInput = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
+    const [val, setVal] = useState("");
+    const [error, setError] = useState(false);
+    const [freq, setFreq] = useState(1);
+    const [hand, setHand] = useState<'E'|'D'>('D');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const p = parseCode(val);
+        if (p.v) {
+            onAdd({
+                code: val.toUpperCase(),
+                tmu: p.t,
+                desc: p.d,
+                freq: freq,
+                hand: p.type === 'body' ? 'C' : hand
+            });
+            setVal("");
+            setFreq(1);
+            setError(false);
+        } else {
+            setError(true);
+            setTimeout(() => setError(false), 2000);
+        }
+    }
+
+    return (
+        <form onSubmit={handleSubmit} className="flex-1 relative flex items-center gap-2">
+            <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl w-full overflow-hidden focus-within:ring-2 focus-within:ring-red-500 transition-shadow">
+                <div className="bg-slate-100 border-r border-slate-200 px-2 py-1 flex flex-col items-center justify-center w-14 shrink-0">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">Qtd</span>
+                    <input type="number" min="1" value={freq} onChange={e => setFreq(parseInt(e.target.value))} className="w-full bg-transparent text-center font-bold text-sm outline-none text-slate-700 p-0" />
+                </div>
+
+                <div className="flex border-r border-slate-200 shrink-0">
+                    <button type="button" onClick={() => setHand('E')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors border-r border-slate-100 ${hand === 'E' ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>E</button>
+                    <button type="button" onClick={() => setHand('D')} className={`w-8 h-full flex items-center justify-center text-xs font-bold transition-colors ${hand === 'D' ? 'bg-red-600 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-200'}`}>D</button>
+                </div>
+
+                <input
+                    value={val}
+                    onChange={(e) => setVal(e.target.value.toUpperCase())}
+                    placeholder={error ? "Inválido" : "Código..."}
+                    className={`w-full h-full pl-4 pr-12 py-3 bg-transparent border-none text-sm font-mono uppercase outline-none text-slate-800 ${error ? 'placeholder-red-400' : 'placeholder-slate-400'}`}
+                />
+            </div>
+
+            <button type="submit" className="p-3 bg-slate-200 hover:bg-slate-300 rounded-xl text-slate-600 transition-colors">
+                <ArrowDownToLine size={20} />
+            </button>
+        </form>
+    );
+};
 
 const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => void }) => {
     const factor = 1 + (data.tolerance / 100);
@@ -421,10 +530,12 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
     const c = calc(data.currentMotions);
     const p = calc(data.proposedMotions);
 
-    // Safety check for NaN and correct rounding
+    // Safety check for NaN
     const safeC = isNaN(c) ? 0 : c;
     const safeP = isNaN(p) ? 0 : p;
+
     const saving = Math.max(0, safeC - safeP);
+    const savingPct = safeC > 0 ? ((safeC - safeP) / safeC) * 100 : 0;
 
     const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
     const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
@@ -460,6 +571,343 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col h-80"><h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2"><Hand className="w-4 h-4"/> Uso dos Membros (Atual vs Proposto)</h3><div className="flex-1 w-full min-h-0 flex"><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Atual</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataCurrent} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>{limbDataCurrent.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip /></RePieChart></ResponsiveContainer></div><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Proposto</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataProposed} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60}>{limbDataProposed.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip /></RePieChart></ResponsiveContainer></div></div></div>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200"><h3 className="font-bold text-slate-700 mb-6 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Calculadora ROI</h3><div className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Custo Minuto (R$)</label><input type="number" step="0.01" value={roi.costMin} onChange={(e) => setData({...data, roi: {...roi, costMin: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" /></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Peças/Dia</label><input type="number" value={roi.volume} onChange={(e) => setData({...data, roi: {...roi, volume: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Investimento (R$)</label><input type="number" step="100" value={roi.invest || 0} onChange={(e) => setData({...data, roi: {...roi, invest: parseFloat(e.target.value)}})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 focus:ring-2 ring-red-500 outline-none" placeholder="0.00" /></div><div className="pt-4 border-t border-slate-100 space-y-2"><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500">Economia Mensal</span><span className="font-mono font-bold text-emerald-600 text-lg">{monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500">Economia Anual</span><span className="font-mono font-bold text-emerald-600 text-lg">{(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>{(roi.invest || 0) > 0 && (<div className="flex justify-between items-center mt-2 p-2 bg-slate-100/50 rounded-lg border border-slate-200"><span className="text-sm font-bold text-slate-600">Retorno (Payback)</span><span className={`font-mono font-bold text-lg ${payback > 12 ? 'text-red-500' : 'text-emerald-600'}`}>{payback.toFixed(1)} meses</span></div>)}</div></div></div></div>
             </div>
+        </div>
+    );
+};
+
+const BarChart2 = ({ className }: { className?: string }) => (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24" height="24" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="12" y1="20" x2="12" y2="10"></line>
+      <line x1="18" y1="20" x2="18" y2="4"></line>
+      <line x1="6" y1="20" x2="6" y2="16"></line>
+    </svg>
+);
+
+// --- WIZARD CONFIGURATION ---
+const H_CFG: any = {
+    'R': {
+        title:"Mover Mão (Reach)",
+        q:[
+            {l:"Distância (cm)",t:'r',id:'d',min:2,max:80,v:30},
+            {l:"Destino",t:'c',id:'c',o:[
+                {v:'A',t:'Fixo',s:'Lugar certo'},
+                {v:'B',t:'Variável',s:'Muda sempre'},
+                {v:'C',t:'Misturado',s:'Em pilha'},
+                {v:'D',t:'Pequeno',s:'Precisa cuidado'}
+            ]}
+        ],
+        g:(v:any)=>`R${v.d}${v.c}`
+    },
+    'M': {
+        title:"Mover Objeto (Move)",
+        q:[
+            {l:"Distância (cm)",t:'r',id:'d',min:2,max:80,v:30},
+            {l:"Destino",t:'c',id:'c',o:[
+                {v:'A',t:'Outra mão',s:'Ou encosto'},
+                {v:'B',t:'Aproximado',s:'Local incerto'},
+                {v:'C',t:'Exato',s:'Encaixe'}
+            ]}
+        ],
+        g:(v:any)=>`M${v.d}${v.c}`
+    },
+    'G': {
+        title:"Pegar (Grasp)",
+        q:[
+            {l:"Tipo",t:'c',id:'t',o:[
+                {v:'G1A',t:'Fácil',s:'Isolado'},
+                {v:'G1B',t:'Pequeno',s:'Plano'},
+                {v:'G4A',t:'Em Pilha',s:'Selecionar'},
+                {v:'G5',t:'Apenas Tocar',s:'Contato'}
+            ]}
+        ],
+        g:(v:any)=>v.t
+    },
+    'P': {
+        title:"Posicionar",
+        q:[
+            {l:"Classe",t:'c',id:'cl',o:[
+                {v:'1',t:'1. Solto',s:'Sem força'},
+                {v:'2',t:'2. Justo',s:'Leve pressão'},
+                {v:'3',t:'3. Firme',s:'Força'}
+            ]},
+            {l:"Simetria",t:'c',id:'s',o:[
+                {v:'S',t:'Simétrico',s:'Qualquer lado'},
+                {v:'SS',t:'Semi-Sim.',s:'Certos lados'},
+                {v:'NS',t:'Não Sim.',s:'Lado único'}
+            ]},
+            {l:"Manuseio",t:'c',id:'h',o:[
+                {v:'E',t:'Fácil',s:'Easy'},
+                {v:'D',t:'Difícil',s:'Difficult'}
+            ]}
+        ],
+        g:(v:any)=>`P${v.cl}${v.s}${v.h}`
+    },
+    'B': {
+        title:"Corpo",
+        q:[
+            {l:"Ação",t:'c',id:'a',o:[
+                {v:'W-P',t:'Andar (Livre)',s:'W-P'},
+                {v:'W-PO',t:'Andar (Obs)',s:'W-PO'},
+                {v:'SIT',t:'Sentar',s:'SIT'},
+                {v:'STD',t:'Levantar',s:'STD'},
+                {v:'B',t:'Curvar',s:'Bend'},
+                {v:'AB',t:'Lev. Curvar',s:'Arise'},
+                {v:'S',t:'Agachar',s:'Stoop'},
+                {v:'AS',t:'Lev. Agachar',s:'Arise'},
+                {v:'KOK',t:'Ajoelhar 1',s:'KOK'},
+                {v:'AKOK',t:'Levantar 1',s:'AKOK'},
+                {v:'TBC1',t:'Girar Corpo 1',s:'Case 1'},
+                {v:'TBC2',t:'Girar Corpo 2',s:'Case 2'},
+                {v:'FM',t:'Mov. Pé',s:'<30cm'}
+            ]},
+            {l:"Unidade",t:'c',id:'u',o:[{v:'s',t:'Passos',s:'Qtd'},{v:'m',t:'Metros',s:'Distância'}], if:(v:any)=>v.a && v.a.startsWith('W')},
+            {l:"Qtde (Passos)",t:'r',id:'p',min:1,max:50,v:1,if:(v:any)=>(v.a && v.a.startsWith('W')) && (!v.u || v.u==='s')},
+            {l:"Distância (Metros)",t:'r',id:'dist',min:1,max:30,v:1,if:(v:any)=>(v.a && v.a.startsWith('W')) && v.u==='m'}
+        ],
+        g:(v:any)=>{
+            if(v.a && v.a.startsWith('W')){
+                const steps = v.u === 'm' ? Math.ceil(v.dist / 0.75) : v.p;
+                return `${steps}${v.a}`;
+            }
+            return v.a;
+        }
+    },
+    'RL': {
+        title:"Soltar",
+        q:[
+            {l:"Tipo",t:'c',id:'t',o:[
+                {v:'RL1',t:'Normal',s:'Abrir dedos'},
+                {v:'RL2',t:'Contato',s:'Tirar contato'}
+            ]}
+        ],
+        g:(v:any)=>v.t
+    },
+    'D': {
+        title:"Separar",
+        q:[
+            {l:"Classe",t:'c',id:'c',o:[
+                {v:'1',t:'Solto',s:'Pouca força'},
+                {v:'2',t:'Justo',s:'Média força'},
+                {v:'3',t:'Firme',s:'Muita força'}
+            ]},
+            {l:"Manuseio",t:'c',id:'h',o:[
+                {v:'E',t:'Fácil',s:'Easy'},
+                {v:'D',t:'Difícil',s:'Difficult'}
+            ]}
+        ],
+        g:(v:any)=>`D${v.c}${v.h}`
+    },
+    'T': {
+        title:"Girar (Turn)",
+        q:[
+            {l:"Graus",t:'r',id:'g',min:30,max:180,v:90},
+            {l:"Resistência",t:'c',id:'r',o:[
+                {v:'S',t:'Pequena',s:'< 1kg'},
+                {v:'M',t:'Média',s:'1-5kg'},
+                {v:'L',t:'Grande',s:'> 5kg'}
+            ]}
+        ],
+        g:(v:any)=>`T${v.g}${v.r}`
+    },
+    'AP': {
+        title:"Força (Pressure)",
+        q:[
+            {l:"Tipo",t:'c',id:'t',o:[
+                {v:'APA',t:'Sem Repegar',s:'Simples'},
+                {v:'APB',t:'Com Repegar',s:'Complexo'}
+            ]}
+        ],
+        g:(v:any)=>v.t
+    },
+    'E': {
+        title:"Olhos",
+        q:[
+            {l:"Ação",t:'c',id:'t',o:[
+                {v:'ET',t:'Mover Olhar',s:'Travel'},
+                {v:'EF',t:'Focar',s:'Examinar'}
+            ]}
+        ],
+        g:(v:any)=>v.t
+    }
+};
+
+const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
+    // ... (Hooks remain same) ...
+    const [category, setCategory] = useState<string | null>(null);
+    const [params, setParams] = useState<any>({});
+    const [wizFreq, setWizFreq] = useState(1);
+    const [wizHand, setWizHand] = useState<'E' | 'D'>('D');
+
+    // Derived state for preview
+    const generatedCode = useMemo(() => {
+        if (!category) return '';
+        try {
+            const cfg = H_CFG[category];
+            const merged = { ...params };
+            if(cfg.q) {
+                cfg.q.forEach((q: any) => {
+                    if (merged[q.id] === undefined) {
+                        if (q.if && !q.if(merged)) return;
+                        merged[q.id] = q.t === 'r' ? q.v : q.o[0].v;
+                    }
+                });
+            }
+            const res = cfg.g(merged);
+            return res === undefined || res === null ? '' : String(res);
+        } catch(e) { return ''; }
+    }, [category, params]);
+
+    const preview = useMemo(() => parseCode(generatedCode), [generatedCode]);
+
+    const handleSelectCategory = (c: string) => {
+        setCategory(c);
+        setParams({}); // Reset params
+        setWizHand('D'); // Default right
+    };
+
+    const handleAdd = () => {
+        if (preview.v) {
+            const finalHand = category === 'B' ? 'C' : wizHand;
+            onAdd({
+                code: generatedCode,
+                tmu: preview.t,
+                desc: preview.d,
+                freq: wizFreq,
+                hand: finalHand
+            });
+            setCategory(null);
+            setWizFreq(1);
+        }
+    };
+
+    const handleBack = () => {
+        setCategory(null);
+        setParams({});
+    }
+
+    // Categories UI
+    if (!category) {
+        return (
+            <div className="flex flex-col h-full bg-slate-50">
+                <div className="p-4 grid grid-cols-2 gap-3 overflow-y-auto">
+                    {[
+                        { id: 'R', label: 'Mão Vazia', sub: 'Alcançar', icon: <Hand size={20}/>, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' },
+                        { id: 'M', label: 'Mover Objeto', sub: 'Carregar', icon: <Grab size={20}/>, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/30 dark:text-orange-400' },
+                        { id: 'G', label: 'Pegar', sub: 'Grasp', icon: <Fingerprint size={20}/>, color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400' },
+                        { id: 'P', label: 'Posicionar', sub: 'Encaixar', icon: <Crosshair size={20}/>, color: 'text-teal-600 bg-teal-50 dark:bg-teal-900/30 dark:text-teal-400' },
+                        { id: 'RL', label: 'Soltar', sub: 'Release', icon: <LogOut size={20}/>, color: 'text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400' },
+                        { id: 'D', label: 'Separar', sub: 'Disengage', icon: <Minimize2 size={20}/>, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400' },
+                        { id: 'T', label: 'Girar', sub: 'Turn', icon: <RotateCw size={20}/>, color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400' },
+                        { id: 'AP', label: 'Fazer Força', sub: 'Premir (AP)', icon: <ArrowDownToLine size={20}/>, color: 'text-pink-600 bg-pink-50 dark:bg-pink-900/30 dark:text-pink-400' },
+                        { id: 'E', label: 'Olhos', sub: 'Focar/Mover', icon: <Eye size={20}/>, color: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-400' },
+                        { id: 'B', label: 'Corpo/Pé', sub: 'Andar/Agachar', icon: <Footprints size={20}/>, color: 'text-slate-600 bg-slate-100/50' },
+                    ].map(c => (
+                        <button key={c.id} onClick={() => handleSelectCategory(c.id)} className="p-4 bg-white border border-slate-100 hover:border-red-400 rounded-xl text-left shadow-sm group transition-all flex flex-col gap-2">
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${c.color} group-hover:bg-red-600 group-hover:text-white`}>{c.icon}</div>
+                            <div>
+                                <span className="block font-bold text-slate-700 text-sm">{c.label}</span>
+                                <span className="text-xs text-slate-400">{c.sub}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // Config UI
+    const cfg = H_CFG[category];
+    return (
+        <div className="flex flex-col h-full bg-slate-50">
+             <div className="p-4 border-b border-slate-100 bg-white flex items-center gap-2">
+                 <button onClick={handleBack} className="text-xs text-slate-400 hover:text-red-600 flex items-center gap-1"><ArrowLeft size={14}/> Voltar</button>
+                 <span className="font-bold text-slate-700 ml-auto">{cfg.title}</span>
+             </div>
+
+             <div className="flex-1 p-4 overflow-y-auto space-y-6">
+                 {cfg.q.map((q: any, i: number) => {
+                     // Check conditions
+                     if (q.if && !q.if(params)) return null;
+
+                     const currentVal = params[q.id] !== undefined ? params[q.id] : (q.t === 'r' ? q.v : q.o[0].v);
+
+                     return (
+                         <div key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                             <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{q.l}</label>
+
+                             {q.t === 'r' ? (
+                                 <div>
+                                     <div className="flex justify-between mb-2 text-sm font-bold text-red-600 dark:text-red-400">{currentVal}</div>
+                                     <input
+                                        type="range" min={q.min} max={q.max} value={currentVal}
+                                        onChange={(e) => setParams({...params, [q.id]: parseInt(e.target.value)})}
+                                        className="w-full h-2 bg-slate-200 rounded-lg accent-red-600 cursor-pointer"
+                                     />
+                                 </div>
+                             ) : (
+                                 <div className="grid grid-cols-2 gap-2">
+                                     {q.o.map((opt: any) => {
+                                         const active = currentVal === opt.v;
+                                         return (
+                                             <button
+                                                key={opt.v}
+                                                onClick={() => setParams({...params, [q.id]: opt.v})}
+                                                className={`p-2 rounded border text-left transition-all ${active ? 'bg-red-50 dark:bg-red-900/30 border-red-500 ring-1 ring-red-500' : 'bg-white border-slate-200 hover:border-red-300'}`}
+                                             >
+                                                 <div className={`font-bold text-sm ${active ? 'text-red-700 dark:text-red-400' : 'text-slate-700'}`}>{opt.t}</div>
+                                                 <div className={`text-xs ${active ? 'text-red-400' : 'text-slate-400'}`}>{opt.s}</div>
+                                             </button>
+                                         )
+                                     })}
+                                 </div>
+                             )}
+                         </div>
+                     );
+                 })}
+             </div>
+
+             {/* Dark Preview Box (Already dark, but container needs check) */}
+             <div className="p-4 bg-slate-50">
+                <div className="bg-slate-900 dark:bg-black rounded-xl p-4 text-white shadow-lg">
+                    <div className="flex justify-between items-start mb-2">
+                        <div>
+                            <span className="text-xs text-slate-400 uppercase font-bold block">Ação Resultante</span>
+                            <span className="text-sm font-medium text-white leading-tight">{preview.d || '...'}</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-2xl font-bold text-yellow-400">{preview.v ? preview.t.toFixed(1) : '0.0'}</span>
+                            <span className="text-xs text-slate-500 block">TMU</span>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-3">
+                        {category !== 'B' && (
+                            <div className="flex rounded-lg overflow-hidden border border-slate-700 bg-slate-800 shrink-0">
+                                <button onClick={() => setWizHand('E')} className={`w-8 h-10 flex items-center justify-center text-xs font-bold transition-colors ${wizHand === 'E' ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>E</button>
+                                <button onClick={() => setWizHand('D')} className={`w-8 h-10 flex items-center justify-center text-xs font-bold transition-colors border-l border-slate-700 ${wizHand === 'D' ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>D</button>
+                            </div>
+                        )}
+
+                        <div className="bg-slate-800 rounded-lg flex items-center px-3 py-2 border border-slate-700 h-10 shrink-0">
+                            <span className="text-[10px] text-slate-400 font-bold mr-2">QTD</span>
+                            <input
+                                type="number" value={wizFreq} min="1"
+                                onChange={(e) => setWizFreq(parseInt(e.target.value))}
+                                className="bg-transparent w-8 text-center font-bold text-white outline-none text-sm"
+                            />
+                        </div>
+
+                        <button onClick={handleAdd} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold h-10 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-red-900/50">
+                            Adicionar <PlusCircle size={16}/>
+                        </button>
+                    </div>
+                </div>
+             </div>
         </div>
     );
 };
