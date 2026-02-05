@@ -7,7 +7,7 @@ import {
   X, Bot, PlusCircle, HelpCircle, Printer, DollarSign,
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp,
   ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
-  MonitorPlay, Moon, Sun, Award, FileText, Activity
+  MonitorPlay, Moon, Sun, Award, FileText, Activity, Download, Upload, FileSpreadsheet
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -18,8 +18,6 @@ import { parseCode, REACH_BASE, MOVE_BASE, STAT, POS_DATA, TURN_DATA, DIS_DATA }
 import { analyzeErgonomics } from './utils/ergonomics';
 import type { Study, Motion } from './types/types';
 import { Simulation } from './components/Simulation';
-
-// ... (TutorialOverlay, ConfirmModal, AIModal, HelpTip, MTMReferenceTable, App, Editor, Sub Components, Wizard Configuration, Wizard remain the same)
 
 const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto print:hidden">
@@ -90,7 +88,6 @@ const ConfirmModal = ({ isOpen, onConfirm, onCancel, message }: { isOpen: boolea
 };
 
 const AIModal = ({ onClose, onApply }: { onClose: () => void, onApply: (motions: Motion[]) => void }) => {
-    // ... (Same as before)
     const [prompt, setPrompt] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -162,24 +159,142 @@ const HelpTip = ({ content }: { content: React.ReactNode }) => {
 };
 
 const MTMReferenceTable = () => {
-    const EX: any = {
-        R: { A: "Fixo", B: "Variável", C: "Misturado", D: "Pequeno", E: "Equilíbrio" },
-        M: { A: "Para Outra Mão", B: "Aproximado", C: "Exato" },
-        P: { 1: "Solto", 2: "Justo", 3: "Firme", S: "Simétrico", SS: "Semi", NS: "Não-Sim" },
-        T: { S: "Pequena", M: "Média", L: "Grande" },
-        D: { 1: "Solto", 2: "Justo", 3: "Firme" },
-        G: { "G1A": "Fácil", "G1B": "Pequeno", "G4A": "Pilha >25mm", "G4B": "Pilha <25mm", "G5": "Tocar" }
+    const [tab, setTab] = useState<'R'|'M'|'T'|'G'|'P'>('R');
+
+    const renderTable = () => {
+        if (tab === 'R') {
+            return (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
+                            <tr><th className="px-4 py-2">Dist (cm)</th><th>A</th><th>B</th><th>C/D</th><th>E</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {Object.entries(REACH_BASE).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k, v]) => (
+                                <tr key={k} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                    <td className="px-4 py-2 font-bold">{k}</td>
+                                    <td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td><td>{v[4]}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+        if (tab === 'M') {
+            return (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
+                            <tr><th className="px-4 py-2">Dist (cm)</th><th>A</th><th>B</th><th>C</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {Object.entries(MOVE_BASE).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k, v]) => (
+                                <tr key={k} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                    <td className="px-4 py-2 font-bold">{k}</td>
+                                    <td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+        if (tab === 'T') {
+            return (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400">
+                            <tr><th className="px-4 py-2">Graus (°)</th><th>S (Pequena)</th><th>M (Média)</th><th>L (Grande)</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {Object.entries(TURN_DATA).sort((a,b)=>Number(a[0])-Number(b[0])).map(([k, v]) => (
+                                <tr key={k} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                    <td className="px-4 py-2 font-bold">{k}</td>
+                                    <td>{v[0]}</td><td>{v[1]}</td><td>{v[2]}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+        if (tab === 'P') {
+             return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <h4 className="font-bold mb-2 text-slate-700 dark:text-slate-300">Posicionar (P)</h4>
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400"><tr><th className="px-4 py-2">Código</th><th>TMU (E)</th><th>TMU (D)</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {Object.entries(POS_DATA).map(([k, v]: any) => (
+                                    <tr key={k}><td className="px-4 py-2 font-bold">{k}</td><td>{v.E}</td><td>{v.D}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 className="font-bold mb-2 text-slate-700 dark:text-slate-300">Separar (D)</h4>
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800 dark:text-slate-400"><tr><th className="px-4 py-2">Classe</th><th>TMU (E)</th><th>TMU (D)</th></tr></thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {Object.entries(DIS_DATA).map(([k, v]: any) => (
+                                    <tr key={k}><td className="px-4 py-2 font-bold">D{k}</td><td>{v.E}</td><td>{v.D}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+             )
+        }
+        // G/RL/Other Static
+        return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['G', 'RL', 'AP', 'E', 'B', 'W'].map(prefix => (
+                    <div key={prefix} className="mb-4">
+                        <h4 className="font-bold mb-2 text-slate-700 dark:text-slate-300 border-b dark:border-slate-700 pb-1">
+                            {prefix === 'G' ? 'Pegar (Grasp)' : prefix === 'RL' ? 'Soltar (Release)' : prefix === 'AP' ? 'Força (Apply Pressure)' : prefix === 'E' ? 'Olhos (Eye)' : 'Corpo (Body)'}
+                        </h4>
+                        <table className="w-full text-xs text-left">
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {Object.entries(STAT).filter(([k]) => k.startsWith(prefix) || (prefix === 'B' && !k.startsWith('G') && !k.startsWith('RL') && !k.startsWith('AP') && !k.startsWith('E') && !k.startsWith('W') && k !== 'FMP' && k !== 'FM') || (prefix === 'W' && k.startsWith('W'))).map(([k, v]) => (
+                                    <tr key={k}><td className="px-2 py-1 font-bold font-mono text-slate-600 dark:text-slate-400">{k}</td><td className="px-2 py-1">{v.d}</td><td className="px-2 py-1 text-right font-bold">{v.t}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ))}
+            </div>
+        );
     };
+
     return (
-        <div className="flex-1 bg-white dark:bg-slate-900 p-6 sm:p-8 overflow-y-auto animate-in fade-in">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2"><BookOpen className="text-red-600"/> Tabela MTM-1 (Referência Simplificada)</h2>
-            <p className="text-slate-500 dark:text-slate-400">Consulte a tabela completa na documentação oficial ou use o Assistente.</p>
-            {/* Table implementation omitted for brevity, logic unchanged */}
+        <div className="flex-1 bg-white dark:bg-slate-900 p-6 sm:p-8 overflow-y-auto animate-in fade-in flex flex-col">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2"><BookOpen className="text-red-600"/> Tabela MTM-1 (Referência)</h2>
+
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-6 border-b border-slate-200 dark:border-slate-800">
+                {[
+                    {id: 'R', l: 'Alcançar (R)'}, {id: 'M', l: 'Mover (M)'},
+                    {id: 'T', l: 'Girar (T)'}, {id: 'P', l: 'Posicionar (P/D)'},
+                    {id: 'G', l: 'Outros (G/RL/Corpo)'}
+                ].map(x => (
+                    <button
+                        key={x.id}
+                        onClick={() => setTab(x.id as any)}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${tab === x.id ? 'bg-slate-900 dark:bg-slate-700 text-white' : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    >
+                        {x.l}
+                    </button>
+                ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+                {renderTable()}
+            </div>
         </div>
     );
 }
 
-// ... App Component (Fix Layout Shadow & Dark Mode)
 export default function App() {
   const [view, setView] = useState<'dashboard' | 'editor' | 'simulation'>('dashboard');
   const [studies, setStudies] = useState<Study[]>([]);
@@ -191,8 +306,8 @@ export default function App() {
   const [wizardOpen, setWizardOpen] = useState(true);
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Dark Mode State
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
         const saved = localStorage.getItem('theme');
@@ -204,7 +319,6 @@ export default function App() {
   useEffect(() => { const saved = localStorage.getItem('tmu_pro_data'); if (saved) setStudies(JSON.parse(saved)); else setShowTutorial(true); if (window.innerWidth < 1024) setWizardOpen(false); }, []);
   useEffect(() => { localStorage.setItem('tmu_pro_data', JSON.stringify(studies)); }, [studies]);
 
-  // Dark Mode Effect
   useEffect(() => {
     if (darkMode) {
         document.documentElement.classList.add('dark');
@@ -226,10 +340,46 @@ export default function App() {
   const handleDeleteStudy = (id: string) => { setStudies(prev => prev.filter(s => s.id !== id)); if (currentId === id) { setView('dashboard'); setCurrentId(null); } setConfirmDeleteId(null); };
   const totalSavings = useMemo(() => { return studies.reduce((acc, study) => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const cur = calc(study.currentMotions); const pro = calc(study.proposedMotions); const saving = Math.max(0, cur - pro); return acc + (saving * study.roi.costMin * study.roi.volume * (study.roi.daysPerMonth || 22)); }, 0); }, [studies]);
 
+  const handleExportJSON = () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(studies));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "tmu_studio_backup_" + new Date().toISOString().split('T')[0] + ".json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+  };
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          try {
+              const imported = JSON.parse(evt.target?.result as string);
+              if (Array.isArray(imported)) {
+                  setStudies(prev => {
+                      const existingIds = new Set(prev.map(s => s.id));
+                      const newStudies = imported.filter((s: Study) => !existingIds.has(s.id));
+                      return [...newStudies, ...prev];
+                  });
+                  alert(`${imported.length} estudos verificados. Importação concluída.`);
+              }
+          } catch (err) {
+              alert("Erro ao ler arquivo. Certifique-se que é um backup válido.");
+          }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+  };
+
   return (
     <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-white font-sans overflow-hidden print:h-auto print:overflow-visible transition-colors duration-300">
         {showTutorial && <TutorialOverlay onClose={() => setShowTutorial(false)} />}
         {confirmDeleteId && <ConfirmModal isOpen={true} message="Tem certeza?" onConfirm={() => handleDeleteStudy(confirmDeleteId)} onCancel={() => setConfirmDeleteId(null)} />}
+        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".json" />
 
         {view === 'dashboard' && (
             <div className="flex h-full animate-in fade-in duration-500 relative print:hidden">
@@ -242,7 +392,14 @@ export default function App() {
                         <button onClick={() => setDashView('list')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} /> Dashboard</button>
                          <button onClick={() => setDashView('reference')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'reference' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><BookOpen size={20} /> Tabela MTM-1</button>
                         <button onClick={handleCreateNew} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 mt-4"><Plus size={20} /> Novo Estudo</button>
-                        <div className="pt-8 border-t border-slate-100 dark:border-slate-800 mt-4"><p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Recentes</p>{studies.slice(0, 5).map(s => (<button key={s.id} onClick={() => handleOpenStudy(s.id)} className="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors truncate">{s.title}</button>))}</div>
+
+                        <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
+                            <p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Dados</p>
+                            <button onClick={handleExportJSON} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"><Download size={16}/> Exportar Backup</button>
+                            <button onClick={handleImportClick} className="w-full flex items-center justify-start gap-3 px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"><Upload size={16}/> Importar Backup</button>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-4"><p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Recentes</p>{studies.slice(0, 5).map(s => (<button key={s.id} onClick={() => handleOpenStudy(s.id)} className="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors truncate">{s.title}</button>))}</div>
                     </nav>
                     <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
                         <button onClick={toggleTheme} className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">{darkMode ? <Sun size={20}/> : <Moon size={20}/>}</button>
@@ -277,8 +434,6 @@ export default function App() {
     </div>
   );
 }
-
-// --- Editor & ResultsView ---
 
 function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, setActiveTab, wizardOpen, setWizardOpen, aiModalOpen, setAiModalOpen, onPrint }: any) {
     useEffect(() => { const t = setTimeout(() => { onSave(); }, 1000); return () => clearTimeout(t); }, [data]);
@@ -319,6 +474,21 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
         if (activeTab === 'current') setData({ ...data, currentMotions: list }); else setData({ ...data, proposedMotions: list });
     };
 
+    const handleExportCSV = () => {
+        const headers = ["Index", "Code", "Description", "Frequency", "TMU", "Hand"];
+        const rows = activeMotions.map((m: Motion, i: number) => [
+            i + 1, m.code, m.desc, m.freq, m.tmu, m.hand
+        ]);
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r: any[]) => r.join(","))].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `tmu_analysis_${data.title}_${activeTab}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300 print:h-auto print:overflow-visible relative">
             <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 sm:px-4 z-30 shrink-0 print:hidden">
@@ -328,6 +498,7 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
                     <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded shrink-0"><CheckCircle size={10} className="text-emerald-500"/> Salvo</div>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                    <button onClick={handleExportCSV} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors" title="Exportar CSV"><FileSpreadsheet size={16}/> <span className="hidden sm:inline">CSV</span></button>
                     <button onClick={onPrint} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Printer size={16}/> <span className="hidden sm:inline">Imprimir</span></button>
                     <button onClick={onOpenSimulation} className="p-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors shadow-lg shadow-purple-500/20"><MonitorPlay size={16}/> <span className="hidden sm:inline">Simular</span></button>
                     <button onClick={() => setActiveTab('results')} className="p-2 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 text-sm font-bold transition-colors"><Calculator size={16}/> <span className="hidden sm:inline">Resultados</span></button>
@@ -423,8 +594,6 @@ function Editor({ data, setData, onSave, onBack, onOpenSimulation, activeTab, se
     );
 }
 
-// --- Sub Components ---
-
 const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon?: React.ReactNode, label?: string }) => (
   <button
     onClick={onClick}
@@ -439,7 +608,6 @@ const MotionCard = ({ motion, index, onDelete, onMoveUp, onMoveDown }: { motion:
     let badgeColor = "bg-slate-500";
     let typeLabel = "CORPO";
 
-    // Dark mode classes applied here
     if (motion.hand === 'E') {
         containerClass += " mr-auto bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30";
         badgeColor = "bg-blue-500";
@@ -473,7 +641,6 @@ const MotionCard = ({ motion, index, onDelete, onMoveUp, onMoveDown }: { motion:
                 <span className="font-mono text-slate-600 dark:text-slate-300 font-bold block">{(motion.tmu * (motion.freq || 1)).toFixed(1)}</span>
             </div>
 
-            {/* Reorder Controls */}
             <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={onMoveUp} className="p-0.5 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded"><ChevronUp size={14}/></button>
                 <button onClick={onMoveDown} className="p-0.5 text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-700 rounded"><ChevronDown size={14}/></button>
@@ -547,18 +714,15 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
     const c = calc(data.currentMotions);
     const p = calc(data.proposedMotions);
 
-    // Safety check for NaN
     const safeC = isNaN(c) ? 0 : c;
     const safeP = isNaN(p) ? 0 : p;
 
     const saving = Math.max(0, safeC - safeP);
-    const savingPct = safeC > 0 ? ((safeC - safeP) / safeC) * 100 : 0;
 
     const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
     const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
     const payback = monthlySave > 0 ? (roi.invest || 0) / monthlySave : 0;
 
-    // Productivity Calculation
     const minutesPerHour = roi.minutesPerHour || 60;
     const curPcsH = safeC > 0 ? minutesPerHour / safeC : 0;
     const proPcsH = safeP > 0 ? minutesPerHour / safeP : 0;
@@ -566,7 +730,6 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
 
     const chartData = [ { name: 'Atual', time: parseFloat(safeC.toFixed(3)), fill: '#64748b' }, { name: 'Proposto', time: parseFloat(safeP.toFixed(3)), fill: '#dc2626' }, ];
 
-    // Limb Usage Data
     const getLimbData = (motions: Motion[]) => {
         const counts = { E: 0, D: 0, C: 0 };
         motions.forEach(m => { if (counts[m.hand] !== undefined) counts[m.hand] += (m.tmu * (m.freq || 1)); });
@@ -575,7 +738,6 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
     const limbDataCurrent = getLimbData(data.currentMotions);
     const limbDataProposed = getLimbData(data.proposedMotions);
 
-    // Ergonomic Analysis Summary
     const countRisks = (motions: Motion[]) => {
         let high = 0, medium = 0;
         motions.forEach(m => {
@@ -597,15 +759,12 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
                     <div className={`p-6 rounded-2xl shadow-sm border ${prodIncrease > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}><p className="text-xs font-bold text-slate-400 uppercase mb-2">Aumento Produtividade</p><p className={`text-3xl font-mono font-bold ${prodIncrease > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>{prodIncrease.toFixed(1)}%</p></div>
                 </div>
 
-                {/* Charts Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80"><h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><BarChart2 className="w-4 h-4"/> Comparativo de Tempo</h3><div className="flex-1 w-full min-h-0"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData} margin={{top: 20, right: 30, left: 0, bottom: 5}}><XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} /><YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => val.toFixed(3)} /><Tooltip cursor={{fill: 'transparent'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}} itemStyle={{color: '#fff'}} labelStyle={{color: '#94a3b8'}} /><Bar dataKey="time" radius={[6, 6, 0, 0]} barSize={50} animationDuration={1000}>{chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={entry.fill} />))}</Bar></BarChart></ResponsiveContainer></div></div>
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80"><h3 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><Hand className="w-4 h-4"/> Uso dos Membros (Atual vs Proposto)</h3><div className="flex-1 w-full min-h-0 flex"><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Atual</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataCurrent} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60} stroke="none">{limbDataCurrent.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}/></RePieChart></ResponsiveContainer></div><div className="flex-1"><p className="text-center text-xs font-bold text-slate-400 mb-2">Proposto</p><ResponsiveContainer width="100%" height="100%"><RePieChart><Pie data={limbDataProposed} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={60} stroke="none">{limbDataProposed.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}</Pie><Tooltip contentStyle={{borderRadius: '12px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}/></RePieChart></ResponsiveContainer></div></div></div>
                 </div>
 
-                {/* Ergonomics & ROI Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Ergonomics Card */}
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
                          <h3 className="font-bold text-slate-700 dark:text-white mb-6 flex items-center gap-2"><Activity className="w-4 h-4 text-orange-500"/> Análise Ergonômica</h3>
                          <div className="grid grid-cols-2 gap-4">
@@ -642,7 +801,6 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
                          </div>
                     </div>
 
-                    {/* ROI Calculator */}
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800"><h3 className="font-bold text-slate-700 dark:text-white mb-6 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Calculadora ROI</h3><div className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Custo Minuto (R$)</label><input type="number" step="0.01" value={roi.costMin} onChange={(e) => setData({...data, roi: {...roi, costMin: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" /></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Peças/Dia</label><input type="number" value={roi.volume} onChange={(e) => setData({...data, roi: {...roi, volume: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" /></div></div><div><label className="block text-xs font-bold text-slate-400 uppercase mb-1">Investimento (R$)</label><input type="number" step="100" value={roi.invest || 0} onChange={(e) => setData({...data, roi: {...roi, invest: parseFloat(e.target.value)}})} className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-mono font-bold text-slate-700 dark:text-white focus:ring-2 ring-red-500 outline-none" placeholder="0.00" /></div><div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2"><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Mensal</span><span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">{monthlySave.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div><div className="flex justify-between items-center"><span className="text-sm font-bold text-slate-500 dark:text-slate-400">Economia Anual</span><span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-lg">{(monthlySave * 12).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span></div>{(roi.invest || 0) > 0 && (<div className="flex justify-between items-center mt-2 p-2 bg-slate-100/50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"><span className="text-sm font-bold text-slate-600 dark:text-slate-300">Retorno (Payback)</span><span className={`font-mono font-bold text-lg ${payback > 12 ? 'text-red-500' : 'text-emerald-600'}`}>{payback.toFixed(1)} meses</span></div>)}</div></div></div>
                 </div>
             </div>
@@ -650,6 +808,7 @@ const ResultsView = ({ data, setData }: { data: Study, setData: (d: Study) => vo
     );
 };
 
+// ... (Sub Components)
 const BarChart2 = ({ className }: { className?: string }) => (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -946,7 +1105,7 @@ const Wizard = ({ onAdd }: { onAdd: (m: Motion) => void }) => {
                  })}
              </div>
 
-             {/* Dark Preview Box */}
+             {/* Dark Preview Box (Already dark, but container needs check) */}
              <div className="p-4 bg-slate-50 dark:bg-slate-900">
                 <div className="bg-slate-900 dark:bg-black rounded-xl p-4 text-white shadow-lg">
                     <div className="flex justify-between items-start mb-2">
