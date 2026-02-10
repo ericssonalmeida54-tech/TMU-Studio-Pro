@@ -8,31 +8,41 @@ import { parseCode } from '../utils/mtmLogic';
 import { Motion, MotionGroup } from '../types/types';
 
 // Wizard Configuration Data
+// Updated with new logic: Weight, Motion in Hand, Eye Travel, Leg Motion, Side Step
 const H_CFG: any = {
     'R': {
         title:"Mover Mão (Reach)",
         q:[
-            {l:"Distância (cm)",t:'r',id:'d',min:2,max:80,v:30},
+            {l:"Distância (cm)",t:'r',id:'d',min:2,max:120,v:30}, // Extended max range
             {l:"Destino",t:'c',id:'c',o:[
                 {v:'A',t:'Fixo',s:'Lugar certo'},
                 {v:'B',t:'Variável',s:'Muda sempre'},
                 {v:'C',t:'Misturado',s:'Em pilha'},
                 {v:'D',t:'Pequeno',s:'Precisa cuidado'}
+            ]},
+            {l:"Mão em Movimento?",t:'c',id:'m',o:[
+                {v:'',t:'Não',s:'Parada'},
+                {v:'m',t:'Sim',s:'Já se movendo'}
             ]}
         ],
-        g:(v:any)=>`R${v.d}${v.c}`
+        g:(v:any)=>`${v.m ? 'm' : ''}R${v.d}${v.c}`
     },
     'M': {
         title:"Mover Objeto (Move)",
         q:[
-            {l:"Distância (cm)",t:'r',id:'d',min:2,max:80,v:30},
+            {l:"Distância (cm)",t:'r',id:'d',min:2,max:120,v:30},
             {l:"Destino",t:'c',id:'c',o:[
                 {v:'A',t:'Outra mão',s:'Ou encosto'},
                 {v:'B',t:'Aproximado',s:'Local incerto'},
                 {v:'C',t:'Exato',s:'Encaixe'}
+            ]},
+            {l:"Peso (kg)",t:'r',id:'w',min:0,max:25,v:0}, // Weight Input
+            {l:"Mão em Movimento?",t:'c',id:'m',o:[
+                {v:'',t:'Não',s:'Parada'},
+                {v:'m',t:'Sim',s:'Já se movendo'}
             ]}
         ],
-        g:(v:any)=>`M${v.d}${v.c}`
+        g:(v:any)=>`${v.m ? 'm' : ''}M${v.d}${v.c}${v.w > 0 ? `-${v.w}kg` : ''}`
     },
     'G': {
         title:"Pegar (Grasp)",
@@ -72,6 +82,9 @@ const H_CFG: any = {
             {l:"Ação",t:'c',id:'a',o:[
                 {v:'W-P',t:'Andar (Livre)',s:'W-P'},
                 {v:'W-PO',t:'Andar (Obs)',s:'W-PO'},
+                {v:'LM',t:'Mover Perna',s:'LM'},
+                {v:'SS-C1',t:'Passo Lat C1',s:'<30cm'},
+                {v:'SS-C2',t:'Passo Lat C2',s:'<60cm'},
                 {v:'SIT',t:'Sentar',s:'SIT'},
                 {v:'STD',t:'Levantar',s:'STD'},
                 {v:'B',t:'Curvar',s:'Bend'},
@@ -84,15 +97,19 @@ const H_CFG: any = {
                 {v:'TBC2',t:'Girar Corpo 2',s:'Case 2'},
                 {v:'FM',t:'Mov. Pé',s:'<30cm'}
             ]},
+            // Walk specifics
             {l:"Unidade",t:'c',id:'u',o:[{v:'s',t:'Passos',s:'Qtd'},{v:'m',t:'Metros',s:'Distância'}], if:(v:any)=>v.a && v.a.startsWith('W')},
             {l:"Qtde (Passos)",t:'r',id:'p',min:1,max:50,v:1,if:(v:any)=>(v.a && v.a.startsWith('W')) && (!v.u || v.u==='s')},
-            {l:"Distância (Metros)",t:'r',id:'dist',min:1,max:30,v:1,if:(v:any)=>(v.a && v.a.startsWith('W')) && v.u==='m'}
+            {l:"Distância (Metros)",t:'r',id:'dist',min:1,max:30,v:1,if:(v:any)=>(v.a && v.a.startsWith('W')) && v.u==='m'},
+            // Leg Motion specifics
+            {l:"Distância (cm)",t:'r',id:'lm_dist',min:1,max:50,v:15,if:(v:any)=>v.a==='LM'}
         ],
         g:(v:any)=>{
             if(v.a && v.a.startsWith('W')){
                 const steps = v.u === 'm' ? Math.ceil(v.dist / 0.75) : v.p;
                 return `${steps}${v.a}`;
             }
+            if(v.a === 'LM') return `LM${v.lm_dist}`;
             return v.a;
         }
     },
@@ -149,9 +166,12 @@ const H_CFG: any = {
             {l:"Ação",t:'c',id:'t',o:[
                 {v:'ET',t:'Mover Olhar',s:'Travel'},
                 {v:'EF',t:'Focar',s:'Examinar'}
-            ]}
+            ]},
+            // Eye Travel Specifics
+            {l:"Distância entre Pontos (T)",t:'r',id:'et_t',min:1,max:100,v:30,if:(v:any)=>v.t==='ET'},
+            {l:"Distância Olho-Objeto (D)",t:'r',id:'et_d',min:10,max:100,v:40,if:(v:any)=>v.t==='ET'}
         ],
-        g:(v:any)=>v.t
+        g:(v:any)=>v.t === 'ET' ? `ET${v.et_t}/${v.et_d}` : v.t
     }
 };
 
