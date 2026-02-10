@@ -11,11 +11,14 @@ export interface ROI {
   volume: number;
   invest: number;
   daysPerMonth?: number;
+  minutesPerHour?: number; // Config: Effective minutes per hour (default 60)
+  targetIncreasePct?: number; // Config: Target production increase %
 }
 
 export interface Study {
   id: string;
   title: string;
+  analyst?: string; // New field for Analyst Name
   tolerance: number;
   currentMotions: Motion[];
   proposedMotions: Motion[];
