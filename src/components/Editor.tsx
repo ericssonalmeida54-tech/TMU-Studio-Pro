@@ -124,115 +124,114 @@ export const Editor: React.FC<EditorProps> = ({
                 </div>
             </header>
 
-            {/* EXECUTIVE REPORT (PRINT VIEW) */}
-            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-10 text-slate-900">
+            {/* MINIMALIST PRINT REPORT */}
+            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-8 text-black font-sans">
 
-                {/* Header */}
-                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
+                {/* Header (Minimalist) */}
+                <div className="flex justify-between items-end border-b border-black pb-4 mb-4">
                     <div>
-                        <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl italic mb-4">T</div>
-                        <h1 className="text-3xl font-bold text-slate-900 uppercase tracking-wide leading-none">Relatório Executivo</h1>
-                        <p className="text-sm text-slate-500 mt-2 font-medium">Análise de Produtividade & Otimização MTM-1</p>
+                        <h1 className="text-xl font-bold uppercase tracking-tight text-black">Relatório de Tempos e Métodos</h1>
+                        <p className="text-xs text-gray-600 mt-1">Norma MTM-1 • Análise Comparativa</p>
                     </div>
-                    <div className="text-right">
-                        <div className="mb-4">
-                            <p className="text-xs text-slate-400 uppercase font-bold">Data de Emissão</p>
-                            <p className="font-bold text-slate-900 text-lg">{new Date().toLocaleDateString()}</p>
+                    <div className="text-right text-xs">
+                        <p><span className="font-bold">Emissão:</span> {new Date().toLocaleDateString()}</p>
+                        <p><span className="font-bold">Analista:</span> {data.analyst || 'N/A'}</p>
+                    </div>
+                </div>
+
+                {/* Operation Info & Summary (Compact) */}
+                <div className="mb-6 border border-gray-300 rounded p-4">
+                    <div className="mb-4">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase">Operação</span>
+                        <h2 className="text-lg font-bold text-black leading-none">{data.title || 'Sem Título'}</h2>
+                    </div>
+
+                    {/* Key Metrics Row */}
+                    <div className="grid grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+                        <div>
+                            <span className="block text-[10px] font-bold text-gray-500 uppercase">Tempo Atual</span>
+                            <span className="font-mono font-bold text-base">{curMin.toFixed(3)} min</span>
                         </div>
                         <div>
-                            <p className="text-xs text-slate-400 uppercase font-bold">Analista Responsável</p>
-                            <p className="font-bold text-slate-900 text-lg">{data.analyst || 'Não Informado'}</p>
+                            <span className="block text-[10px] font-bold text-gray-500 uppercase">Tempo Proposto</span>
+                            <span className="font-mono font-bold text-base">{proMin.toFixed(3)} min</span>
+                        </div>
+                        <div>
+                            <span className="block text-[10px] font-bold text-gray-500 uppercase">Economia/Ano</span>
+                            <span className="font-mono font-bold text-base">R$ {(annualSave/1000).toFixed(1)}k</span>
+                        </div>
+                        <div>
+                            <span className="block text-[10px] font-bold text-gray-500 uppercase">Retorno</span>
+                            <span className="font-mono font-bold text-base">{payback > 0 ? `${payback.toFixed(1)} m` : 'Imediato'}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Operation Title */}
-                <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Operação Analisada</p>
-                    <h2 className="text-2xl font-bold text-slate-900">{data.title || 'Sem Título'}</h2>
-                </div>
-
-                {/* Executive Summary (Colorful Gains) */}
-                <div className="grid grid-cols-3 gap-6 mb-10">
-                    <div className="bg-emerald-600 text-white p-6 rounded-2xl print:bg-emerald-600 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Economia Anual Projetada</p>
-                        <p className="text-4xl font-bold">R$ {(annualSave/1000).toFixed(1)}k</p>
-                        <p className="text-xs opacity-60 mt-2">Baseado em {roi.volume} pçs/dia</p>
-                    </div>
-                    <div className="bg-blue-600 text-white p-6 rounded-2xl print:bg-blue-600 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Horas Produtivas Ganhas</p>
-                        <p className="text-4xl font-bold">{hoursSavedYear.toFixed(0)} h</p>
-                        <p className="text-xs opacity-60 mt-2">Capacidade adicional por ano</p>
-                    </div>
-                    <div className="bg-slate-800 text-white p-6 rounded-2xl print:bg-slate-800 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
-                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Retorno (Payback)</p>
-                        <p className="text-4xl font-bold">{payback > 0 ? payback.toFixed(1) : 'Imed.'}</p>
-                        <p className="text-xs opacity-60 mt-2">{payback > 0 ? 'Meses para retorno' : 'Sem investimento significativo'}</p>
-                    </div>
-                </div>
-
-                {/* Performance Comparison */}
-                <div className="grid grid-cols-2 gap-8 mb-8">
-                    <div className="border border-slate-200 rounded-xl overflow-hidden">
-                        <div className="bg-slate-100 p-3 border-b border-slate-200">
-                            <h3 className="font-bold text-slate-700 text-center uppercase text-sm">Método Atual</h3>
+                {/* Dense Comparison Tables */}
+                <div className="grid grid-cols-2 gap-4">
+                    {/* Current Method */}
+                    <div>
+                        <div className="border-b border-black mb-2 pb-1">
+                            <h3 className="font-bold text-sm uppercase">Método Atual</h3>
                         </div>
-                        <div className="p-4 text-center">
-                            <p className="text-3xl font-mono font-bold text-slate-700">{curMin.toFixed(3)} <span className="text-sm">min</span></p>
-                            <p className="text-sm text-slate-500 mt-1">{curPcsH.toFixed(0)} peças/hora</p>
-                        </div>
-                        <table className="w-full text-xs border-t border-slate-200">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="px-2 py-1 text-left">Seq</th>
-                                    <th className="px-2 py-1 text-left">Desc</th>
-                                    <th className="px-2 py-1 text-right">TMU</th>
+                        <table className="w-full text-[9px] border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-300">
+                                    <th className="py-1 text-left w-8">#</th>
+                                    <th className="py-1 text-left w-12">Cód</th>
+                                    <th className="py-1 text-left">Descrição</th>
+                                    <th className="py-1 text-right w-12">TMU</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {data.currentMotions.map((m, i) => (
-                                    <tr key={i} className="border-b border-slate-100 break-inside-avoid">
-                                        <td className="px-2 py-1 font-bold text-slate-400">{i+1}</td>
-                                        <td className="px-2 py-1 truncate max-w-[120px]">{m.desc}</td>
-                                        <td className="px-2 py-1 text-right font-mono">{m.tmu.toFixed(1)}</td>
+                                    <tr key={i} className="border-b border-gray-100 break-inside-avoid">
+                                        <td className="py-0.5 font-bold text-gray-500">{i+1}</td>
+                                        <td className="py-0.5 font-mono text-gray-700">{m.code}</td>
+                                        <td className="py-0.5 truncate max-w-[150px]">{m.desc}</td>
+                                        <td className="py-0.5 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                        <div className="mt-2 text-right border-t border-black pt-1">
+                            <span className="text-[10px] font-bold">Total: {data.currentMotions.reduce((acc, m) => acc + (m.tmu*(m.freq||1)), 0).toFixed(1)} TMU</span>
+                        </div>
                     </div>
 
-                    <div className="border border-emerald-200 rounded-xl overflow-hidden">
-                        <div className="bg-emerald-50 p-3 border-b border-emerald-100">
-                            <h3 className="font-bold text-emerald-700 text-center uppercase text-sm">Método Proposto</h3>
+                    {/* Proposed Method */}
+                    <div>
+                        <div className="border-b border-black mb-2 pb-1">
+                            <h3 className="font-bold text-sm uppercase">Método Proposto</h3>
                         </div>
-                        <div className="p-4 text-center">
-                            <p className="text-3xl font-mono font-bold text-emerald-700">{proMin.toFixed(3)} <span className="text-sm">min</span></p>
-                            <p className="text-sm text-emerald-600 mt-1">{proPcsH.toFixed(0)} peças/hora (+{prodIncrease.toFixed(1)}%)</p>
-                        </div>
-                        <table className="w-full text-xs border-t border-emerald-100">
-                            <thead className="bg-emerald-50">
-                                <tr>
-                                    <th className="px-2 py-1 text-left text-emerald-700">Seq</th>
-                                    <th className="px-2 py-1 text-left text-emerald-700">Desc</th>
-                                    <th className="px-2 py-1 text-right text-emerald-700">TMU</th>
+                        <table className="w-full text-[9px] border-collapse">
+                            <thead>
+                                <tr className="border-b border-gray-300">
+                                    <th className="py-1 text-left w-8">#</th>
+                                    <th className="py-1 text-left w-12">Cód</th>
+                                    <th className="py-1 text-left">Descrição</th>
+                                    <th className="py-1 text-right w-12">TMU</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {data.proposedMotions.map((m, i) => (
-                                    <tr key={i} className="border-b border-emerald-50 break-inside-avoid">
-                                        <td className="px-2 py-1 font-bold text-emerald-400">{i+1}</td>
-                                        <td className="px-2 py-1 truncate max-w-[120px]">{m.desc}</td>
-                                        <td className="px-2 py-1 text-right font-mono">{m.tmu.toFixed(1)}</td>
+                                    <tr key={i} className="border-b border-gray-100 break-inside-avoid">
+                                        <td className="py-0.5 font-bold text-gray-500">{i+1}</td>
+                                        <td className="py-0.5 font-mono text-gray-700">{m.code}</td>
+                                        <td className="py-0.5 truncate max-w-[150px]">{m.desc}</td>
+                                        <td className="py-0.5 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
+                        <div className="mt-2 text-right border-t border-black pt-1">
+                            <span className="text-[10px] font-bold">Total: {data.proposedMotions.reduce((acc, m) => acc + (m.tmu*(m.freq||1)), 0).toFixed(1)} TMU</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 text-center border-t border-slate-200 bg-white">
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Gerado por TMU Studio Pro • Solução de Engenharia Industrial</p>
+                <div className="mt-8 pt-4 border-t border-gray-200 text-center">
+                    <p className="text-[8px] text-gray-400 uppercase">TMU Studio Pro</p>
                 </div>
             </div>
 
