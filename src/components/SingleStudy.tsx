@@ -139,7 +139,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Jornada (min/dia)</label>
-                                        <input type="number" value={shiftMin} onChange={e => setData({...data, shiftMinutes: parseFloat(e.target.value)}})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-slate-900 dark:text-white" />
+                                        <input type="number" value={shiftMin} onChange={e => setData({...data, shiftMinutes: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-slate-900 dark:text-white" />
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tolerância (%)</label>
