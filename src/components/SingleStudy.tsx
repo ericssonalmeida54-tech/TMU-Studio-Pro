@@ -2,11 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
     ArrowLeft, Printer, Settings2, Wand2, Hand, X,
     Clock, Zap, AlertTriangle, TrendingUp, Target, DollarSign,
-    List, BarChart2
+    List, BarChart2, TrendingDown, Info, Dumbbell
 } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie
+} from 'recharts';
 import { Study, Motion, MotionGroup } from '../types/types';
 import { Wizard } from './Wizard';
 import { MotionCard, ManualInput } from './EditorComponents';
+import { analyzeErgonomics } from '../utils/ergonomics';
 
 interface SingleStudyProps {
     data: Study;
@@ -26,11 +30,11 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
     // Tabs state
     const [activeTab, setActiveTab] = useState<'config' | 'motions' | 'results'>('motions');
 
-    // Default values if missing
+    // Default values if missing - Safe Fallbacks
     const obsTime = data.observedTime || 0;
     const shiftMin = data.shiftMinutes || 480; // 8 hours default
-    const costMin = data.roi.costMin || 0.50;
-    const volume = data.roi.volume || 1000;
+    const costMin = data.roi?.costMin || 0.50;
+    const volume = data.roi?.volume || 1000;
 
     // Auto-save
     useEffect(() => {
@@ -43,19 +47,45 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
     const totalTMU = data.currentMotions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0);
     const mtmMin = totalTMU * 0.0006 * factor;
 
-    // --- KPIs Calculations ---
-    // Safe calculation for efficiency to avoid Infinity/NaN
+    // --- KPIs Calculations (Robust Anti-Crash) ---
     const efficiency = obsTime > 0 ? (mtmMin / obsTime) * 100 : 0;
     const capMTM = mtmMin > 0 ? shiftMin / mtmMin : 0;
     const capReal = obsTime > 0 ? shiftMin / obsTime : 0;
-    const lostPieces = Math.max(0, capMTM - capReal);
+    const lostPieces = Math.max(0, capMTM - capReal); // Daily
+    const capacityGap = lostPieces;
+
     const costMTM = mtmMin * costMin;
     const costReal = obsTime * costMin;
     const lossPerPiece = Math.max(0, costReal - costMTM);
-    // Assuming monthly volume based on daily capacity real * days
-    const daysPerMonth = data.roi.daysPerMonth || 22;
-    const monthlyLoss = lossPerPiece * capReal * daysPerMonth;
+    // Monthly Calculation: Loss per piece * Real Volume * Days
+    // If we assume `volume` is the TARGET/IDEAL per day, maybe we should use capReal for Actual Volume?
+    // Using `volume` input as "Target Production" for standardizing financial scope.
+    // Financial Impact: (Real Cost - MTM Cost) * Volume * Days
+    const daysPerMonth = data.roi?.daysPerMonth || 22;
+    const monthlyFinancialImpact = (costReal - costMTM) * volume * daysPerMonth;
 
+    const timeDeviation = obsTime - mtmMin;
+
+    // Charts Data
+    const cycleData = [
+        { name: 'Cronometrado', value: parseFloat(obsTime.toFixed(3)), fill: '#64748b' },
+        { name: 'Padrão MTM', value: parseFloat(mtmMin.toFixed(3)), fill: '#10b981' }
+    ];
+
+    const getLimbData = (motions: Motion[]) => {
+        const counts: any = { E: 0, D: 0, C: 0 };
+        motions.forEach(m => {
+            if (counts[m.hand] !== undefined) counts[m.hand] += (m.tmu * (m.freq || 1));
+        });
+        return [
+            { name: 'Mão Esq.', value: counts.E, fill: '#3b82f6' },
+            { name: 'Mão Dir.', value: counts.D, fill: '#ef4444' },
+            { name: 'Corpo', value: counts.C, fill: '#64748b' }
+        ].filter(x => x.value > 0);
+    };
+    const limbData = getLimbData(data.currentMotions);
+
+    // Handlers
     const handleAddMotion = (motion: Motion) => {
         const newList = [...data.currentMotions, motion];
         setData({ ...data, currentMotions: newList });
@@ -69,6 +99,13 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
         if (direction === 'up' && index > 0) { [list[index], list[index - 1]] = [list[index - 1], list[index]]; }
         else if (direction === 'down' && index < list.length - 1) { [list[index], list[index + 1]] = [list[index + 1], list[index]]; }
         setData({ ...data, currentMotions: list });
+    };
+
+    // Update Helpers
+    const updateObsTime = (val: string) => setData({ ...data, observedTime: parseFloat(val) || 0 });
+    const updateRoi = (field: string, val: string) => {
+        const roi = data.roi || { costMin: 0.5, volume: 1000, invest: 0, daysPerMonth: 22 };
+        setData({ ...data, roi: { ...roi, [field]: parseFloat(val) || 0 } });
     };
 
     const TabButton = ({ id, label, icon }: { id: any, label: string, icon: React.ReactNode }) => (
@@ -90,7 +127,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                         <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><ArrowLeft size={20} className="text-slate-500"/></button>
                         <div>
                             <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-none">{data.title || 'Estudo Individual'}</h1>
-                            <p className="text-xs text-slate-500 font-medium">Análise Comparativa (MTM vs Real)</p>
+                            <p className="text-xs text-slate-500 font-medium">Auditoria de Processo (MTM vs Real)</p>
                         </div>
                     </div>
                     <div className="flex gap-2 mb-4">
@@ -100,9 +137,9 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
 
                 {/* Tab Bar */}
                 <div className="flex px-4 gap-4 overflow-x-auto">
-                    <TabButton id="config" label="Configuração" icon={<Settings2 size={16}/>} />
                     <TabButton id="motions" label="Movimentos" icon={<List size={16}/>} />
                     <TabButton id="results" label="Resultados" icon={<BarChart2 size={16}/>} />
+                    <TabButton id="config" label="Configuração" icon={<Settings2 size={16}/>} />
                 </div>
             </header>
 
@@ -128,16 +165,9 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                 </div>
 
                                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
-                                <h3 className="font-bold text-slate-700 dark:text-slate-300">Dados Financeiros & Turno</h3>
+                                <h3 className="font-bold text-slate-700 dark:text-slate-300">Turno & Padrões</h3>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Custo Minuto (R$)</label>
-                                        <div className="relative">
-                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">R$</span>
-                                            <input type="number" step="0.01" value={costMin} onChange={e => setData({...data, roi: {...data.roi, costMin: parseFloat(e.target.value)}})} className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-slate-900 dark:text-white" />
-                                        </div>
-                                    </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Jornada (min/dia)</label>
                                         <input type="number" value={shiftMin} onChange={e => setData({...data, shiftMinutes: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-slate-900 dark:text-white" />
@@ -182,7 +212,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                     {data.currentMotions.length === 0 ? (
                                         <div className="h-64 flex flex-col items-center justify-center opacity-40">
                                             <Hand size={48} className="mb-4 text-slate-400"/>
-                                            <p className="text-center px-4 text-slate-500 font-medium">Adicione movimentos à sequência.</p>
+                                            <p className="text-center px-4 text-slate-500 font-medium">Adicione movimentos à sequência para calcular o Padrão.</p>
                                         </div>
                                     ) : (
                                         data.currentMotions.map((m, i) => (
@@ -213,99 +243,125 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                     </div>
                 )}
 
-                {/* C. Results Tab */}
+                {/* C. Results Tab (Redesigned & Safe) */}
                 {activeTab === 'results' && (
                     <div className="flex-1 p-6 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300 bg-slate-50 dark:bg-slate-950">
-                        <div className="max-w-6xl mx-auto space-y-6">
+                        <div className="max-w-7xl mx-auto space-y-8">
 
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {/* Time Comparison */}
-                                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><Clock size={16}/> Comparativo Tempo</h4>
-                                    <div className="mt-4 flex flex-col gap-3">
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500 font-bold">Real (Min)</span>
-                                            {/* Input Moved Here */}
-                                            <input
-                                                type="number"
-                                                step="0.001"
-                                                value={obsTime}
-                                                onChange={e => setData({...data, observedTime: parseFloat(e.target.value)})}
-                                                className="w-24 font-mono font-bold bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 ring-blue-500 text-slate-900 dark:text-white text-right"
-                                            />
+                            {/* 1. Active Parameter Bar */}
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
+                                            <Settings2Icon />
                                         </div>
-                                        <div className="flex justify-between items-center text-sm">
-                                            <span className="text-slate-500">Padrão MTM</span>
-                                            <span className="font-mono font-bold text-blue-600">{mtmMin.toFixed(3)} m</span>
-                                        </div>
-                                        <div className="mt-1 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-xs font-bold uppercase text-slate-400">Desvio</span>
-                                                <span className={`font-mono font-bold text-lg ${obsTime > mtmMin ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                    {obsTime > mtmMin ? '+' : ''}{(obsTime - mtmMin).toFixed(3)} min
-                                                </span>
-                                            </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Parâmetros de Auditoria</h3>
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">Edite os valores reais para análise.</p>
                                         </div>
                                     </div>
-                                </div>
-
-                                {/* Efficiency */}
-                                <div className={`p-6 rounded-2xl border shadow-sm flex flex-col justify-between ${efficiency >= 100 ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'}`}>
-                                    <div className="flex justify-between items-start">
-                                        <h4 className={`text-xs font-bold uppercase flex items-center gap-2 ${efficiency >= 100 ? 'text-emerald-700' : 'text-red-700'}`}><Zap size={16}/> Eficiência</h4>
-                                        <div className={`p-2 rounded-lg ${efficiency >= 100 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
-                                            {efficiency >= 100 ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
-                                        </div>
-                                    </div>
-                                    <div className="mt-4">
-                                        <span className={`text-4xl font-bold ${efficiency >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{isNaN(efficiency) ? '0.0' : efficiency.toFixed(1)}%</span>
-                                        <p className="text-xs opacity-70 uppercase font-bold mt-1">{efficiency >= 100 ? 'Meta Atingida' : 'Abaixo da Meta'}</p>
-                                    </div>
-                                </div>
-
-                                {/* Financial Impact */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><DollarSign size={16}/> Impacto Mensal</h4>
-                                        <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500"><AlertTriangle size={20}/></div>
-                                    </div>
-                                    <div className="mt-4">
-                                        <span className={`text-3xl font-bold ${monthlyLoss > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                                            {monthlyLoss > 0 ? '-' : '+'} R$ {Math.abs(monthlyLoss).toLocaleString('pt-BR', {minimumFractionDigits: 2})}
-                                        </span>
-                                        <p className="text-xs text-slate-400 mt-1 uppercase font-bold">{monthlyLoss > 0 ? 'Desperdício Estimado' : 'Economia Estimada'}</p>
-                                    </div>
-                                </div>
-
-                                {/* Capacity Gap */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><Target size={16}/> Capacidade (Pçs/Dia)</h4>
-                                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600"><Clock size={20}/></div>
-                                    </div>
-                                    <div className="mt-4 space-y-2">
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-sm font-medium text-slate-500">Real</span>
-                                            <span className="text-xl font-bold text-slate-900 dark:text-white">{isFinite(capReal) ? capReal.toFixed(0) : '0'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-sm font-medium text-blue-600">Ideal (MTM)</span>
-                                            <span className="text-xl font-bold text-blue-600">{isFinite(capMTM) ? capMTM.toFixed(0) : '0'}</span>
-                                        </div>
-                                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <span className={`text-xs font-bold ${lostPieces > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                Diferença: {lostPieces > 0 ? `-${lostPieces.toFixed(0)} pçs` : `+${Math.abs(lostPieces).toFixed(0)} pçs`}
-                                            </span>
-                                        </div>
+                                    <div className="flex flex-wrap gap-4 w-full md:w-auto">
+                                        <InputGroup label="Tempo Cronometrado (min)" value={obsTime} onChange={updateObsTime} icon={<Clock size={14}/>} />
+                                        <InputGroup label="Custo Minuto (R$)" value={costMin} onChange={v => updateRoi('costMin', v)} icon={<DollarSign size={14}/>} />
+                                        <InputGroup label="Produção Alvo (Pçs/Dia)" value={volume} onChange={v => updateRoi('volume', v)} icon={<Target size={14}/>} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Detailed Audit Table Placeholder - Could be added here if requested, but dashboard is key */}
-                            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-xl border border-blue-100 dark:border-blue-900/30 text-center">
-                                <h3 className="text-blue-800 dark:text-blue-300 font-bold mb-2">Relatório de Auditoria</h3>
-                                <p className="text-blue-600 dark:text-blue-400 text-sm">Use o botão de imprimir para gerar a Folha de Verificação oficial com todos os dados acima.</p>
+                            {/* 2. KPI Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <KPICard
+                                    title="Eficiência Global"
+                                    value={`${efficiency.toFixed(1)}%`}
+                                    sub={efficiency >= 100 ? 'Performance Aprovada' : 'Abaixo do Padrão'}
+                                    icon={<Zap size={24}/>}
+                                    color={efficiency >= 100 ? 'text-emerald-600' : 'text-red-600'}
+                                    bg={efficiency >= 100 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}
+                                />
+                                <KPICard
+                                    title="Impacto Mensal"
+                                    value={`R$ ${Math.abs(monthlyFinancialImpact).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`}
+                                    sub={monthlyFinancialImpact > 0 ? 'Desperdício Estimado' : 'Economia Gerada'}
+                                    icon={<DollarSign size={24}/>}
+                                    color={monthlyFinancialImpact > 0 ? 'text-red-600' : 'text-emerald-600'}
+                                    bg={monthlyFinancialImpact > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}
+                                />
+                                <KPICard
+                                    title="Desvio de Tempo"
+                                    value={`${timeDeviation > 0 ? '+' : ''}${timeDeviation.toFixed(3)} min`}
+                                    sub="Diferença Real vs MTM"
+                                    icon={<Clock size={24}/>}
+                                    color={timeDeviation > 0 ? 'text-red-500' : 'text-emerald-500'}
+                                    bg="bg-slate-100 dark:bg-slate-800"
+                                />
+                                <KPICard
+                                    title="Gap Capacidade"
+                                    value={`${lostPieces > 0 ? '-' : '+'}${Math.abs(lostPieces).toFixed(0)} pçs`}
+                                    sub="Potencial Diário Perdido"
+                                    icon={<Target size={24}/>}
+                                    color={lostPieces > 0 ? 'text-orange-500' : 'text-blue-500'}
+                                    bg="bg-slate-100 dark:bg-slate-800"
+                                />
+                            </div>
+
+                            {/* 3. Charts */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Bar Chart */}
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80">
+                                    <h4 className="text-sm font-bold text-slate-500 uppercase mb-6 flex items-center gap-2">
+                                        <BarChart2 size={16}/> Comparativo Real vs Padrão
+                                    </h4>
+                                    <div className="flex-1 w-full min-h-0">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cycleData} margin={{top: 20, right: 30, left: 0, bottom: 5}}>
+                                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                                <Tooltip
+                                                    cursor={{fill: 'transparent'}}
+                                                    contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}
+                                                />
+                                                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60}>
+                                                    {cycleData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+
+                                {/* Pie Chart */}
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80">
+                                    <h4 className="text-sm font-bold text-slate-500 uppercase mb-6 flex items-center gap-2">
+                                        <Hand size={16}/> Distribuição de Esforço
+                                    </h4>
+                                    <div className="flex-1 w-full min-h-0 flex items-center">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={limbData}
+                                                    dataKey="value"
+                                                    nameKey="name"
+                                                    cx="50%" cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                >
+                                                    {limbData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                                </Pie>
+                                                <Tooltip contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                        <div className="flex flex-col gap-2 ml-4">
+                                            {limbData.map((d, i) => (
+                                                <div key={i} className="flex items-center gap-2 text-xs">
+                                                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: d.fill}}></div>
+                                                    <span className="text-slate-600 dark:text-slate-400">{d.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                         </div>
@@ -332,21 +388,6 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                     <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Tempo Crono</span> {obsTime.toFixed(3)} min</div>
                     <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Tempo MTM</span> {mtmMin.toFixed(3)} min</div>
                     <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Eficiência</span> {efficiency.toFixed(1)}%</div>
-                </div>
-
-                <div className="mb-6 grid grid-cols-3 gap-4">
-                     <div className="p-2 border border-gray-200 rounded">
-                         <span className="block text-[8px] uppercase font-bold text-gray-400">Capacidade Real</span>
-                         <span className="font-bold text-lg">{isFinite(capReal) ? capReal.toFixed(0) : '0'} pçs/dia</span>
-                     </div>
-                     <div className="p-2 border border-gray-200 rounded">
-                         <span className="block text-[8px] uppercase font-bold text-gray-400">Perda Diária</span>
-                         <span className="font-bold text-lg text-red-600">{lostPieces.toFixed(0)} pçs</span>
-                     </div>
-                     <div className="p-2 border border-gray-200 rounded">
-                         <span className="block text-[8px] uppercase font-bold text-gray-400">Impacto Mensal</span>
-                         <span className="font-bold text-lg text-red-600">R$ {monthlyLoss.toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                     </div>
                 </div>
 
                 <table className="w-full text-xs border-collapse">
@@ -386,3 +427,39 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
         </div>
     );
 };
+
+// --- Local Components (To ensure self-containment) ---
+
+const InputGroup = ({ label, value, onChange, icon }: { label: string, value: number, onChange: (val: string) => void, icon: React.ReactNode }) => (
+    <div className="flex flex-col">
+        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+            {icon} {label}
+        </label>
+        <input
+            type="number"
+            step="0.001"
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-lg font-mono font-bold text-slate-900 dark:text-white focus:ring-2 ring-blue-500 outline-none w-32 transition-all hover:bg-white dark:hover:bg-slate-700"
+        />
+    </div>
+);
+
+const KPICard = ({ title, value, sub, icon, color, bg }: { title: string, value: string, sub: string, icon: React.ReactNode, color: string, bg: string }) => (
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
+        <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-xl ${bg} ${color} group-hover:scale-110 transition-transform`}>
+                {icon}
+            </div>
+        </div>
+        <div>
+            <p className="text-xs font-bold text-slate-400 uppercase mb-1">{title}</p>
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</h3>
+            <p className={`text-xs font-medium mt-1 ${color} opacity-80`}>{sub}</p>
+        </div>
+    </div>
+);
+
+const Settings2Icon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+);
