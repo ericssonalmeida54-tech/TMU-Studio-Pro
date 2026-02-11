@@ -18,7 +18,7 @@ import { GoogleGenAI } from "@google/genai";
 import { parseCode, REACH_BASE, MOVE_BASE, STAT, POS_DATA, TURN_DATA, DIS_DATA } from './utils/mtmLogic';
 import { analyzeErgonomics } from './utils/ergonomics';
 import type { Study, Motion, MotionGroup } from './types/types';
-import { DetailedAnalysis } from './components/DetailedAnalysis'; // Updated Import
+import { Simulation } from './components/Simulation';
 import MTMReferenceTable from './components/MTMReferenceTable';
 import { MotionGroupManager } from './components/MotionGroupManager';
 import { Editor } from './components/Editor';
@@ -274,7 +274,7 @@ export default function App() {
         )}
 
         {view === 'simulation' && editorData && (
-            <DetailedAnalysis study={editorData} onUpdateStudy={(updated) => { setEditorData(updated); if(view !== 'sandbox') handleSaveEditor(updated); }} onBack={() => setView(view === 'sandbox' ? 'sandbox' : 'editor')} />
+            <Simulation study={editorData} onUpdateStudy={(updated) => { setEditorData(updated); if(view !== 'sandbox') handleSaveEditor(updated); }} onBack={() => setView(view === 'sandbox' ? 'sandbox' : 'editor')} />
         )}
 
         {view === 'groupManager' && (
