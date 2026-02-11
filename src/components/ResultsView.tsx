@@ -203,7 +203,7 @@ export const ResultsView: React.FC<ResultsViewProps> = ({ data, setData }) => {
                             </h4>
                             <div className={`p-4 rounded-xl border-l-4 ${heavyMotions > 0 ? 'bg-red-50 border-red-500 text-red-800' : 'bg-emerald-50 border-emerald-500 text-emerald-800'}`}>
                                 <p className="text-3xl font-bold">{heavyMotions}</p>
-                                <p className="text-xs font-bold uppercase mt-1">Movimentos > 2kg</p>
+                                <p className="text-xs font-bold uppercase mt-1">Movimentos &gt; 2kg</p>
                             </div>
                             <p className="text-sm text-slate-500 mt-4 leading-relaxed">
                                 {heavyMotions > 0
