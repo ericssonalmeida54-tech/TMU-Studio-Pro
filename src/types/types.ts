@@ -32,6 +32,7 @@ export interface ROI {
 
 export interface Study {
   id: string;
+  type?: 'comparison' | 'single'; // Distinguish study types
   title: string;
   analyst?: string;
   tolerance: number;
@@ -39,4 +40,7 @@ export interface Study {
   proposedMotions: Motion[];
   roi: ROI;
   updatedAt: number;
+  // Single Study specifics
+  observedTime?: number; // Tempo Cronometrado (min)
+  shiftMinutes?: number; // Jornada (min)
 }

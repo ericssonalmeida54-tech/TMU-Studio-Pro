@@ -8,7 +8,7 @@ import {
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp,
   ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
   MonitorPlay, Moon, Sun, Award, FileText, Activity, Download, Upload, FileSpreadsheet,
-  FolderOpen, Zap, Search
+  FolderOpen, Zap, Search, Clock
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -21,6 +21,7 @@ import type { Study, Motion, MotionGroup } from './types/types';
 import MTMReferenceTable from './components/MTMReferenceTable';
 import { MotionGroupManager } from './components/MotionGroupManager';
 import { Editor } from './components/Editor';
+import { SingleStudy } from './components/SingleStudy';
 
 const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto print:hidden">
@@ -59,7 +60,7 @@ const ConfirmModal = ({ isOpen, onConfirm, onCancel, message }: { isOpen: boolea
 };
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'editor' | 'simulation' | 'groupManager' | 'sandbox'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'editor' | 'single' | 'simulation' | 'groupManager' | 'sandbox'>('dashboard');
   const [studies, setStudies] = useState<Study[]>([]);
   const [motionGroups, setMotionGroups] = useState<MotionGroup[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -107,7 +108,15 @@ export default function App() {
     const newStudy: Study = { id: Date.now().toString(), title: "Nova Análise", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.688, volume: 1000, invest: 0, daysPerMonth: 22, minutesPerHour: 60, targetIncreasePct: 10 }, updatedAt: Date.now() };
     setStudies([newStudy, ...studies]); setCurrentId(newStudy.id); setEditorData(newStudy); setView('editor'); setActiveTab('current');
   };
-  const handleOpenStudy = (id: string) => { const s = studies.find(x => x.id === id); if (s) { setCurrentId(id); setEditorData(JSON.parse(JSON.stringify(s))); setView('editor'); setActiveTab('current'); } };
+  const handleOpenStudy = (id: string) => {
+      const s = studies.find(x => x.id === id);
+      if (s) {
+          setCurrentId(id);
+          setEditorData(JSON.parse(JSON.stringify(s)));
+          setView(s.type === 'single' ? 'single' : 'editor');
+          setActiveTab('current');
+      }
+  };
   const handleSaveEditor = (dataToSave?: Study) => {
       // Do not save if sandbox
       if (view === 'sandbox') return;
@@ -210,7 +219,11 @@ export default function App() {
                         <button onClick={() => setDashView('list')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} /> Dashboard</button>
                          <button onClick={() => setDashView('reference')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'reference' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><BookOpen size={20} /> Tabela MTM-1</button>
                          <button onClick={() => setView('groupManager')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800`}><FolderOpen size={20} /> Operações Padrão</button>
-                        <button onClick={handleCreateNew} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 mt-4"><Plus size={20} /> Novo Estudo</button>
+                        <button onClick={handleCreateNew} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 mt-4"><Plus size={20} /> Comparar Métodos</button>
+                        <button onClick={() => {
+                            const newStudy: Study = { id: Date.now().toString(), type: 'single', title: "Novo Estudo Individual", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.50, volume: 1000, invest: 0 }, updatedAt: Date.now() };
+                            setStudies([newStudy, ...studies]); setCurrentId(newStudy.id); setEditorData(newStudy); setView('single');
+                        }} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-red-500 hover:text-red-600 transition-all mt-2"><Clock size={20} /> Estudo Individual</button>
 
                         <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
                             <p className="px-3 text-xs font-bold text-slate-400 uppercase mb-2">Dados</p>
@@ -268,6 +281,19 @@ export default function App() {
                 onPrint={() => window.print()}
                 isSandbox={view === 'sandbox'}
                 motionGroups={motionGroups}
+            />
+        )}
+
+        {view === 'single' && editorData && (
+            <SingleStudy
+                data={editorData}
+                setData={setEditorData}
+                onSave={handleSaveEditor}
+                onBack={() => setView('dashboard')}
+                wizardOpen={wizardOpen}
+                setWizardOpen={setWizardOpen}
+                motionGroups={motionGroups}
+                onPrint={() => window.print()}
             />
         )}
 
