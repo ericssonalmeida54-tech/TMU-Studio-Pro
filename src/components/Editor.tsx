@@ -15,7 +15,6 @@ interface EditorProps {
     setData: React.Dispatch<React.SetStateAction<Study>>;
     onSave: (d?: Study) => void;
     onBack: () => void;
-    onOpenSimulation: () => void;
     activeTab: 'current' | 'proposed' | 'results' | 'config';
     setActiveTab: (t: 'current' | 'proposed' | 'results' | 'config') => void;
     wizardOpen: boolean;
@@ -28,7 +27,7 @@ interface EditorProps {
 }
 
 export const Editor: React.FC<EditorProps> = ({
-    data, setData, onSave, onBack, onOpenSimulation,
+    data, setData, onSave, onBack,
     activeTab, setActiveTab, wizardOpen, setWizardOpen,
     aiModalOpen, setAiModalOpen, onPrint, isSandbox, motionGroups
 }) => {
@@ -119,7 +118,6 @@ export const Editor: React.FC<EditorProps> = ({
                 <div className="flex gap-2 shrink-0">
                     <button onClick={handleExportCSV} className={`p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors ${isSandbox ? 'bg-purple-800 text-purple-200 hover:bg-purple-700' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`} title="Exportar CSV"><FileSpreadsheet size={16}/> <span className="hidden sm:inline">CSV</span></button>
                     <button onClick={onPrint} className={`p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors ${isSandbox ? 'bg-purple-800 text-purple-200 hover:bg-purple-700' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'}`}><Printer size={16}/> <span className="hidden sm:inline">Imprimir</span></button>
-                    <button onClick={onOpenSimulation} className={`p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors shadow-lg ${isSandbox ? 'bg-white text-purple-900 hover:bg-gray-100' : 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20'}`}><MonitorPlay size={16}/> <span className="hidden sm:inline">Simular</span></button>
                     <button onClick={() => setActiveTab('results')} className={`p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors ${isSandbox ? 'bg-purple-800 text-white hover:bg-purple-700' : 'bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white'}`}><Calculator size={16}/> <span className="hidden sm:inline">Resultados</span></button>
                 </div>
             </header>
