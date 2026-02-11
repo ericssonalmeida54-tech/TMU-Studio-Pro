@@ -22,6 +22,15 @@ const MTMReferenceTable = () => {
         <td className={`border border-slate-300 dark:border-slate-600 px-2 py-1 text-center ${bold ? 'font-bold bg-slate-50 dark:bg-slate-800/50' : ''}`}>{children}</td>
     );
 
+    const getStatCategory = (code: string) => {
+        if (code.startsWith('G')) return 'Pegar (G)';
+        if (code.startsWith('RL')) return 'Soltar (RL)';
+        if (code.startsWith('AP')) return 'Pressão (AP)';
+        if (code.startsWith('E') && !code.startsWith('ET') && !code.startsWith('EF')) return 'Corpo (Body)'; // Avoid confusion if any E codes exist, but typically ET/EF are Eye
+        if (code === 'ET' || code === 'EF') return 'Olhos (Eye)';
+        return 'Corpo / Perna (Body/Leg)';
+    };
+
     const renderTable = () => {
         if (tab === 'R') {
             return (
@@ -34,6 +43,8 @@ const MTMReferenceTable = () => {
                                 <TableHeader>B</TableHeader>
                                 <TableHeader>C / D</TableHeader>
                                 <TableHeader>E</TableHeader>
+                                <TableHeader>mR (A)</TableHeader>
+                                <TableHeader>mR (B)</TableHeader>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
@@ -43,13 +54,15 @@ const MTMReferenceTable = () => {
                                     <TableCell>{v[0]}</TableCell>
                                     <TableCell>{v[1]}</TableCell>
                                     <TableCell>{v[2]}</TableCell>
+                                    <TableCell>{v[3]}</TableCell>
                                     <TableCell>{v[4]}</TableCell>
+                                    <TableCell>{v[5]}</TableCell>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                     <div className="mt-2 text-xs text-slate-500 italic">
-                        * A: Mão para obj. fixo; B: Mão para obj. var.; C/D: Misturado/Pequeno; E: Equilíbrio.
+                        * A: Fixo; B: Variável; C/D: Misturado; E: Equilíbrio; mR: Mão em Movimento.
                     </div>
                 </div>
             );
@@ -64,6 +77,7 @@ const MTMReferenceTable = () => {
                                 <TableHeader>A</TableHeader>
                                 <TableHeader>B</TableHeader>
                                 <TableHeader>C</TableHeader>
+                                <TableHeader>mM (B)</TableHeader>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
@@ -73,12 +87,13 @@ const MTMReferenceTable = () => {
                                     <TableCell>{v[0]}</TableCell>
                                     <TableCell>{v[1]}</TableCell>
                                     <TableCell>{v[2]}</TableCell>
+                                    <TableCell>{v[3]}</TableCell>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                      <div className="mt-2 text-xs text-slate-500 italic">
-                        * A: Para outra mão/encosto; B: Aproximado; C: Exato.
+                        * A: Outra mão; B: Aproximado; C: Exato; mM: Mão em Movimento.
                     </div>
                 </div>
             );
@@ -137,28 +152,43 @@ const MTMReferenceTable = () => {
                 </div>
              )
         }
-        // G/RL/Other Static
+
+        // G/RL/Other Static Grouped
+        const groupedStats: Record<string, {code: string, t: number, d: string}[]> = {};
+        Object.entries(STAT).forEach(([code, val]) => {
+            const cat = getStatCategory(code);
+            if (!groupedStats[cat]) groupedStats[cat] = [];
+            groupedStats[cat].push({ code, ...val });
+        });
+
+        // Ensure specific order
+        const categoryOrder = ['Pegar (G)', 'Soltar (RL)', 'Pressão (AP)', 'Olhos (Eye)', 'Corpo / Perna (Body/Leg)'];
+
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {['G', 'RL', 'AP', 'E', 'B', 'W'].map(prefix => (
-                    <div key={prefix} className="mb-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-sm">
-                        <h4 className="font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-2 border-b border-slate-200 dark:border-slate-600 text-xs uppercase">
-                            {prefix === 'G' ? 'Pegar (Grasp)' : prefix === 'RL' ? 'Soltar (Release)' : prefix === 'AP' ? 'Força (Apply Pressure)' : prefix === 'E' ? 'Olhos (Eye)' : 'Corpo (Body)'}
-                        </h4>
-                        <table className="w-full text-xs">
-                             <thead><tr><th className="px-2 py-1 text-left bg-slate-50 dark:bg-slate-800 text-slate-500">Cod</th><th className="px-2 py-1 text-left bg-slate-50 dark:bg-slate-800 text-slate-500">Desc</th><th className="px-2 py-1 text-right bg-slate-50 dark:bg-slate-800 text-slate-500">TMU</th></tr></thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {Object.entries(STAT).filter(([k]) => k.startsWith(prefix) || (prefix === 'B' && !k.startsWith('G') && !k.startsWith('RL') && !k.startsWith('AP') && !k.startsWith('E') && !k.startsWith('W') && k !== 'FMP' && k !== 'FM') || (prefix === 'W' && k.startsWith('W'))).map(([k, v]) => (
-                                    <tr key={k} className="hover:bg-yellow-50 dark:hover:bg-yellow-900/10">
-                                        <td className="px-2 py-1 font-bold font-mono text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">{k}</td>
-                                        <td className="px-2 py-1 text-slate-600 dark:text-slate-400">{v.d}</td>
-                                        <td className="px-2 py-1 text-right font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/50">{v.t}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                ))}
+                {categoryOrder.map(cat => {
+                    const items = groupedStats[cat] || [];
+                    if (items.length === 0) return null;
+                    return (
+                        <div key={cat} className="mb-4 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-sm">
+                            <h4 className="font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-2 border-b border-slate-200 dark:border-slate-600 text-xs uppercase">
+                                {cat}
+                            </h4>
+                            <table className="w-full text-xs">
+                                 <thead><tr><th className="px-2 py-1 text-left bg-slate-50 dark:bg-slate-800 text-slate-500">Cod</th><th className="px-2 py-1 text-left bg-slate-50 dark:bg-slate-800 text-slate-500">Desc</th><th className="px-2 py-1 text-right bg-slate-50 dark:bg-slate-800 text-slate-500">TMU</th></tr></thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {items.map((item) => (
+                                        <tr key={item.code} className="hover:bg-yellow-50 dark:hover:bg-yellow-900/10">
+                                            <td className="px-2 py-1 font-bold font-mono text-slate-700 dark:text-slate-300 border-r border-slate-100 dark:border-slate-800">{item.code}</td>
+                                            <td className="px-2 py-1 text-slate-600 dark:text-slate-400">{item.d}</td>
+                                            <td className="px-2 py-1 text-right font-bold text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/50">{item.t}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    );
+                })}
             </div>
         );
     };
