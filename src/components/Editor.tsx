@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ArrowLeft, CheckCircle, FileSpreadsheet, Printer, MonitorPlay,
     Calculator, Settings2, Wand2, Hand, Bot, DollarSign, X
@@ -12,7 +12,7 @@ import { parseCode } from '../utils/mtmLogic';
 
 interface EditorProps {
     data: Study;
-    setData: React.Dispatch<React.SetStateAction<Study>>; // Changed to simpler Dispatch for Sandbox
+    setData: React.Dispatch<React.SetStateAction<Study>>;
     onSave: (d?: Study) => void;
     onBack: () => void;
     onOpenSimulation: () => void;
@@ -32,7 +32,6 @@ export const Editor: React.FC<EditorProps> = ({
     activeTab, setActiveTab, wizardOpen, setWizardOpen,
     aiModalOpen, setAiModalOpen, onPrint, isSandbox, motionGroups
 }) => {
-    // Save hook
     useEffect(() => {
         if (!isSandbox) {
             const t = setTimeout(() => { onSave(data); }, 1000);
@@ -50,13 +49,19 @@ export const Editor: React.FC<EditorProps> = ({
     const curMin = calcTotal(data.currentMotions) * 0.0006 * factor;
     const proMin = calcTotal(data.proposedMotions) * 0.0006 * factor;
     const saving = Math.max(0, curMin - proMin);
-    const roi = data.roi || { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
+
+    // ROI Defaults & Calculations
+    const roi = data.roi || { costMin: 0.688, volume: 1000, invest: 0, daysPerMonth: 22, minutesPerHour: 60 };
     const monthlySave = saving * roi.costMin * roi.volume * (roi.daysPerMonth || 22);
+    const annualSave = monthlySave * 12;
     const payback = monthlySave > 0 ? (roi.invest || 0) / monthlySave : 0;
+
+    // Productivity
     const minutesPerHour = roi.minutesPerHour || 60;
     const curPcsH = curMin > 0 ? minutesPerHour / curMin : 0;
     const proPcsH = proMin > 0 ? minutesPerHour / proMin : 0;
     const prodIncrease = curPcsH > 0 ? ((proPcsH - curPcsH) / curPcsH) * 100 : 0;
+    const hoursSavedYear = (saving * roi.volume * (roi.daysPerMonth || 22) * 12) / 60;
 
     const handleAddMotion = (motion: Motion) => {
         const newList = [...activeMotions, motion];
@@ -119,35 +124,116 @@ export const Editor: React.FC<EditorProps> = ({
                 </div>
             </header>
 
-            {/* FULL REPORT PRINT VIEW (Same as before, ensuring light mode) */}
-            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-8">
-                <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4 mb-8">
-                    <div><h1 className="text-2xl font-bold text-slate-900 uppercase tracking-wide">Relatório de Análise Operacional</h1><p className="text-sm text-slate-600 mt-1">Método MTM-1 (Methods-Time Measurement)</p></div>
-                    <div className="text-right"><p className="text-xs text-slate-500 uppercase">Data de Emissão</p><p className="font-bold text-slate-900">{new Date().toLocaleDateString()}</p></div>
-                </div>
-                <div className="grid grid-cols-2 gap-8 mb-8 text-sm">
-                    <div><p className="text-xs text-slate-500 uppercase mb-1">Operação</p><p className="font-bold text-lg text-slate-900">{data.title || 'Sem Título'}</p></div>
-                    <div><p className="text-xs text-slate-500 uppercase mb-1">Analista Responsável</p><p className="font-bold text-lg text-slate-900">{data.analyst || 'Não Informado'}</p></div>
-                </div>
-                {/* ... (Print layout reused from App.tsx - shortened for brevity but logic implies reuse) ... */}
-                {/* I am re-implementing the print view here briefly to ensure it works */}
-                <div className="grid grid-cols-3 gap-6 mb-8">
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 break-inside-avoid"><p className="text-xs font-bold text-slate-400 uppercase mb-1">Método Atual</p><p className="text-2xl font-mono font-bold text-slate-700">{curMin.toFixed(3)} <span className="text-sm text-slate-400">min</span></p></div>
-                    <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 break-inside-avoid"><p className="text-xs font-bold text-slate-400 uppercase mb-1">Método Proposto</p><p className="text-2xl font-mono font-bold text-slate-700">{proMin.toFixed(3)} <span className="text-sm text-slate-400">min</span></p></div>
-                    <div className={`p-4 rounded-xl border break-inside-avoid ${saving > 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}><p className={`text-xs font-bold uppercase mb-1 ${saving > 0 ? 'text-emerald-600' : 'text-red-600'}`}>Aumento Produtividade</p><p className={`text-2xl font-mono font-bold ${saving > 0 ? 'text-emerald-700' : 'text-red-700'}`}>{prodIncrease.toFixed(1)}%</p></div>
-                </div>
-                {/* Detailed tables for print */}
-                 <div className="grid grid-cols-2 gap-8 mb-8">
+            {/* EXECUTIVE REPORT (PRINT VIEW) */}
+            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-10 text-slate-900">
+
+                {/* Header */}
+                <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
                     <div>
-                        <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Atual</h3>
-                        <table className="w-full text-xs border-collapse"><thead><tr className="bg-slate-100 border-b border-slate-300"><th className="p-2 text-left">#</th><th className="p-2 text-left">Cód</th><th className="p-2 text-left">Desc</th><th className="p-2 text-right">TMU</th></tr></thead><tbody>{data.currentMotions.map((m: Motion, i: number) => (<tr key={i} className="border-b border-slate-100 break-inside-avoid"><td className="p-2 font-bold text-slate-500">{i+1}</td><td className="p-2 font-mono font-bold">{m.code}</td><td className="p-2 truncate max-w-[150px]">{m.desc}</td><td className="p-2 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td></tr>))}</tbody></table>
+                        <div className="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold text-2xl italic mb-4">T</div>
+                        <h1 className="text-3xl font-bold text-slate-900 uppercase tracking-wide leading-none">Relatório Executivo</h1>
+                        <p className="text-sm text-slate-500 mt-2 font-medium">Análise de Produtividade & Otimização MTM-1</p>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-slate-800 mb-3 border-b pb-2">Detalhamento: Proposto</h3>
-                        <table className="w-full text-xs border-collapse"><thead><tr className="bg-slate-100 border-b border-slate-300"><th className="p-2 text-left">#</th><th className="p-2 text-left">Cód</th><th className="p-2 text-left">Desc</th><th className="p-2 text-right">TMU</th></tr></thead><tbody>{data.proposedMotions.map((m: Motion, i: number) => (<tr key={i} className="border-b border-slate-100 break-inside-avoid"><td className="p-2 font-bold text-slate-500">{i+1}</td><td className="p-2 font-mono font-bold">{m.code}</td><td className="p-2 truncate max-w-[150px]">{m.desc}</td><td className="p-2 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td></tr>))}</tbody></table>
+                    <div className="text-right">
+                        <div className="mb-4">
+                            <p className="text-xs text-slate-400 uppercase font-bold">Data de Emissão</p>
+                            <p className="font-bold text-slate-900 text-lg">{new Date().toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                            <p className="text-xs text-slate-400 uppercase font-bold">Analista Responsável</p>
+                            <p className="font-bold text-slate-900 text-lg">{data.analyst || 'Não Informado'}</p>
+                        </div>
                     </div>
                 </div>
-                <div className="fixed bottom-0 left-0 right-0 p-4 text-center border-t border-slate-200 bg-white"><p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Desenvolvido por CSSN</p></div>
+
+                {/* Operation Title */}
+                <div className="mb-8 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <p className="text-xs font-bold text-slate-400 uppercase mb-1">Operação Analisada</p>
+                    <h2 className="text-2xl font-bold text-slate-900">{data.title || 'Sem Título'}</h2>
+                </div>
+
+                {/* Executive Summary (Colorful Gains) */}
+                <div className="grid grid-cols-3 gap-6 mb-10">
+                    <div className="bg-emerald-600 text-white p-6 rounded-2xl print:bg-emerald-600 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Economia Anual Projetada</p>
+                        <p className="text-4xl font-bold">R$ {(annualSave/1000).toFixed(1)}k</p>
+                        <p className="text-xs opacity-60 mt-2">Baseado em {roi.volume} pçs/dia</p>
+                    </div>
+                    <div className="bg-blue-600 text-white p-6 rounded-2xl print:bg-blue-600 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Horas Produtivas Ganhas</p>
+                        <p className="text-4xl font-bold">{hoursSavedYear.toFixed(0)} h</p>
+                        <p className="text-xs opacity-60 mt-2">Capacidade adicional por ano</p>
+                    </div>
+                    <div className="bg-slate-800 text-white p-6 rounded-2xl print:bg-slate-800 print:text-white" style={{printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact'}}>
+                        <p className="text-sm font-bold opacity-80 uppercase mb-2">Retorno (Payback)</p>
+                        <p className="text-4xl font-bold">{payback > 0 ? payback.toFixed(1) : 'Imed.'}</p>
+                        <p className="text-xs opacity-60 mt-2">{payback > 0 ? 'Meses para retorno' : 'Sem investimento significativo'}</p>
+                    </div>
+                </div>
+
+                {/* Performance Comparison */}
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <div className="bg-slate-100 p-3 border-b border-slate-200">
+                            <h3 className="font-bold text-slate-700 text-center uppercase text-sm">Método Atual</h3>
+                        </div>
+                        <div className="p-4 text-center">
+                            <p className="text-3xl font-mono font-bold text-slate-700">{curMin.toFixed(3)} <span className="text-sm">min</span></p>
+                            <p className="text-sm text-slate-500 mt-1">{curPcsH.toFixed(0)} peças/hora</p>
+                        </div>
+                        <table className="w-full text-xs border-t border-slate-200">
+                            <thead className="bg-slate-50">
+                                <tr>
+                                    <th className="px-2 py-1 text-left">Seq</th>
+                                    <th className="px-2 py-1 text-left">Desc</th>
+                                    <th className="px-2 py-1 text-right">TMU</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.currentMotions.map((m, i) => (
+                                    <tr key={i} className="border-b border-slate-100 break-inside-avoid">
+                                        <td className="px-2 py-1 font-bold text-slate-400">{i+1}</td>
+                                        <td className="px-2 py-1 truncate max-w-[120px]">{m.desc}</td>
+                                        <td className="px-2 py-1 text-right font-mono">{m.tmu.toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="border border-emerald-200 rounded-xl overflow-hidden">
+                        <div className="bg-emerald-50 p-3 border-b border-emerald-100">
+                            <h3 className="font-bold text-emerald-700 text-center uppercase text-sm">Método Proposto</h3>
+                        </div>
+                        <div className="p-4 text-center">
+                            <p className="text-3xl font-mono font-bold text-emerald-700">{proMin.toFixed(3)} <span className="text-sm">min</span></p>
+                            <p className="text-sm text-emerald-600 mt-1">{proPcsH.toFixed(0)} peças/hora (+{prodIncrease.toFixed(1)}%)</p>
+                        </div>
+                        <table className="w-full text-xs border-t border-emerald-100">
+                            <thead className="bg-emerald-50">
+                                <tr>
+                                    <th className="px-2 py-1 text-left text-emerald-700">Seq</th>
+                                    <th className="px-2 py-1 text-left text-emerald-700">Desc</th>
+                                    <th className="px-2 py-1 text-right text-emerald-700">TMU</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {data.proposedMotions.map((m, i) => (
+                                    <tr key={i} className="border-b border-emerald-50 break-inside-avoid">
+                                        <td className="px-2 py-1 font-bold text-emerald-400">{i+1}</td>
+                                        <td className="px-2 py-1 truncate max-w-[120px]">{m.desc}</td>
+                                        <td className="px-2 py-1 text-right font-mono">{m.tmu.toFixed(1)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="fixed bottom-0 left-0 right-0 p-6 text-center border-t border-slate-200 bg-white">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Gerado por TMU Studio Pro • Solução de Engenharia Industrial</p>
+                </div>
             </div>
 
             <div className="flex-1 flex flex-col print:hidden overflow-hidden">
