@@ -158,7 +158,9 @@ export const STAT: Record<string, { t: number, d: string }> = {
   "FM": { t: 8.5, d: "Mover Pé (<30cm)" },
   "FMP": { t: 19.1, d: "Mover Pé c/ Pressão" },
   "SS-C1": { t: 17.0, d: "Passo Lateral (<30cm)" },
-  "SS-C2": { t: 34.1, d: "Passo Lateral (<60cm)" }
+  "SS-C2": { t: 34.1, d: "Passo Lateral (<60cm)" },
+  "W-P": { t: 15.0, d: "Andar (passo)" },
+  "W-PO": { t: 17.0, d: "Andar (obstruído)" }
 };
 
 // --- Helper Functions ---
@@ -413,8 +415,9 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
   }
 
   // 9. BODY - Walk special case
-  if (c.match(/^\d+W/)) {
-      const match = c.match(/^(\d+)W(-P|-PO)?$/);
+  // Updated Regex: /^(\d+)\s*W(-P|-PO)?$/
+  if (c.match(/^\d+\s*W/)) {
+      const match = c.match(/^(\d+)\s*W(-P|-PO)?$/);
       if (match) {
           const steps = parseInt(match[1]);
           const type = match[2] || '-P'; // W-P or W-PO
@@ -429,6 +432,11 @@ export const parseCode = (code: string): { v: boolean, t: number, d: string, typ
   // 10. STATIC (G, RL, AP, E, B, etc.)
   if (STAT[c]) {
       return { v: true, t: STAT[c].t, d: STAT[c].d, type: c.match(/^(G|RL|AP|E)/) ? undefined : 'body' };
+  }
+
+  // 11. MANUAL / PROCESS / ADJ
+  if (['PROC', 'ADJ', 'MANUAL'].includes(c)) {
+      return { v: true, t: 0, d: 'Manual/Processo', type: 'process' };
   }
 
   return { v: false, t: 0, d: "Código Inválido" };

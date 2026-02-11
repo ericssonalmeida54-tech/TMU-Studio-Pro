@@ -98,7 +98,7 @@ export const Editor: React.FC<EditorProps> = ({
       );
 
     return (
-        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300 print:h-auto print:overflow-visible relative">
+        <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300 print:overflow-visible relative">
             <header className={`h-16 border-b flex items-center justify-between px-3 sm:px-4 z-30 shrink-0 print:hidden ${isSandbox ? 'bg-purple-900 border-purple-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}`}>
                 <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden">
                     <button onClick={onBack} className={`p-2 rounded-full transition-colors shrink-0 ${isSandbox ? 'text-purple-200 hover:bg-purple-800' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}><ArrowLeft size={20}/></button>
@@ -120,7 +120,7 @@ export const Editor: React.FC<EditorProps> = ({
             </header>
 
             {/* FULL REPORT PRINT VIEW (Same as before, ensuring light mode) */}
-            <div className="hidden print:block fixed inset-0 z-[100] bg-white text-black p-8 overflow-visible h-auto">
+            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-8">
                 <div className="flex justify-between items-end border-b-2 border-slate-800 pb-4 mb-8">
                     <div><h1 className="text-2xl font-bold text-slate-900 uppercase tracking-wide">Relatório de Análise Operacional</h1><p className="text-sm text-slate-600 mt-1">Método MTM-1 (Methods-Time Measurement)</p></div>
                     <div className="text-right"><p className="text-xs text-slate-500 uppercase">Data de Emissão</p><p className="font-bold text-slate-900">{new Date().toLocaleDateString()}</p></div>

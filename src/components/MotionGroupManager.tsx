@@ -199,13 +199,19 @@ const GroupEditor: React.FC<{ group: MotionGroup, setGroup: (g: MotionGroup) => 
         // Standard MTM Logic
         const p = parseCode(code);
         if (p.v) {
+            // If parseCode identifies as process (e.g. manual code entry "PROC"), respect that
+            if (p.type === 'process') {
+                 // For now, if manually typed PROC, we treat it as 0 TMU or placeholder unless we parse value
+                 // Ideally user should use the Process tab, but this prevents error.
+            }
+
             setGroup({ ...group, motions: [...group.motions, {
                 code: code.toUpperCase(),
                 tmu: p.t,
                 desc: p.d,
                 freq: freq,
                 hand: p.type === 'body' ? 'C' : 'D', // Simplified hand logic for now
-                type: 'mtm'
+                type: p.type === 'process' ? 'process' : 'mtm'
             }]});
             setCode(""); setFreq(1);
         } else {
