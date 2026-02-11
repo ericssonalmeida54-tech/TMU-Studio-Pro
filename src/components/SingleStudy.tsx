@@ -44,6 +44,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
     const mtmMin = totalTMU * 0.0006 * factor;
 
     // --- KPIs Calculations ---
+    // Safe calculation for efficiency to avoid Infinity/NaN
     const efficiency = obsTime > 0 ? (mtmMin / obsTime) * 100 : 0;
     const capMTM = mtmMin > 0 ? shiftMin / mtmMin : 0;
     const capReal = obsTime > 0 ? shiftMin / obsTime : 0;
@@ -149,18 +150,6 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                         </div>
                                     </div>
                                 </div>
-
-                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
-                                <h3 className="font-bold text-slate-700 dark:text-slate-300">Base de Comparação</h3>
-
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tempo Cronometrado (Real)</label>
-                                    <div className="flex items-center gap-2">
-                                        <input type="number" step="0.001" value={obsTime} onChange={e => setData({...data, observedTime: parseFloat(e.target.value)})} className="w-full md:w-1/3 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-lg text-slate-900 dark:text-white" />
-                                        <span className="text-sm font-bold text-slate-400">minutos</span>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-2">Insira o tempo médio atual observado para calcular a eficiência.</p>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -231,6 +220,36 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
 
                             {/* Summary Cards */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {/* Time Comparison */}
+                                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><Clock size={16}/> Comparativo Tempo</h4>
+                                    <div className="mt-4 flex flex-col gap-3">
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500 font-bold">Real (Min)</span>
+                                            {/* Input Moved Here */}
+                                            <input
+                                                type="number"
+                                                step="0.001"
+                                                value={obsTime}
+                                                onChange={e => setData({...data, observedTime: parseFloat(e.target.value)})}
+                                                className="w-24 font-mono font-bold bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 ring-blue-500 text-slate-900 dark:text-white text-right"
+                                            />
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm">
+                                            <span className="text-slate-500">Padrão MTM</span>
+                                            <span className="font-mono font-bold text-blue-600">{mtmMin.toFixed(3)} m</span>
+                                        </div>
+                                        <div className="mt-1 pt-2 border-t border-slate-100 dark:border-slate-800">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs font-bold uppercase text-slate-400">Desvio</span>
+                                                <span className={`font-mono font-bold text-lg ${obsTime > mtmMin ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                    {obsTime > mtmMin ? '+' : ''}{(obsTime - mtmMin).toFixed(3)} min
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Efficiency */}
                                 <div className={`p-6 rounded-2xl border shadow-sm flex flex-col justify-between ${efficiency >= 100 ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'}`}>
                                     <div className="flex justify-between items-start">
@@ -240,7 +259,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                         </div>
                                     </div>
                                     <div className="mt-4">
-                                        <span className={`text-4xl font-bold ${efficiency >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{efficiency.toFixed(1)}%</span>
+                                        <span className={`text-4xl font-bold ${efficiency >= 100 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>{isNaN(efficiency) ? '0.0' : efficiency.toFixed(1)}%</span>
                                         <p className="text-xs opacity-70 uppercase font-bold mt-1">{efficiency >= 100 ? 'Meta Atingida' : 'Abaixo da Meta'}</p>
                                     </div>
                                 </div>
@@ -268,41 +287,16 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                                     <div className="mt-4 space-y-2">
                                         <div className="flex justify-between items-end">
                                             <span className="text-sm font-medium text-slate-500">Real</span>
-                                            <span className="text-xl font-bold text-slate-900 dark:text-white">{capReal.toFixed(0)}</span>
+                                            <span className="text-xl font-bold text-slate-900 dark:text-white">{isFinite(capReal) ? capReal.toFixed(0) : '0'}</span>
                                         </div>
                                         <div className="flex justify-between items-end">
                                             <span className="text-sm font-medium text-blue-600">Ideal (MTM)</span>
-                                            <span className="text-xl font-bold text-blue-600">{capMTM.toFixed(0)}</span>
+                                            <span className="text-xl font-bold text-blue-600">{isFinite(capMTM) ? capMTM.toFixed(0) : '0'}</span>
                                         </div>
                                         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                                             <span className={`text-xs font-bold ${lostPieces > 0 ? 'text-red-500' : 'text-emerald-500'}`}>
                                                 Diferença: {lostPieces > 0 ? `-${lostPieces.toFixed(0)} pçs` : `+${Math.abs(lostPieces).toFixed(0)} pçs`}
                                             </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Time Delta */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-                                    <div className="flex justify-between items-start">
-                                        <h4 className="text-xs font-bold text-slate-500 uppercase flex items-center gap-2"><Clock size={16}/> Análise de Tempo</h4>
-                                    </div>
-                                    <div className="mt-4 flex flex-col gap-1">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500">Cronometrado</span>
-                                            <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{obsTime.toFixed(3)} m</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-slate-500">Padrão MTM</span>
-                                            <span className="font-mono font-bold text-blue-600">{mtmMin.toFixed(3)} m</span>
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-xs font-bold uppercase text-slate-400">Desvio</span>
-                                                <span className={`font-mono font-bold text-lg ${obsTime > mtmMin ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                    {obsTime > mtmMin ? '+' : ''}{(obsTime - mtmMin).toFixed(3)} min
-                                                </span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -343,7 +337,7 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
                 <div className="mb-6 grid grid-cols-3 gap-4">
                      <div className="p-2 border border-gray-200 rounded">
                          <span className="block text-[8px] uppercase font-bold text-gray-400">Capacidade Real</span>
-                         <span className="font-bold text-lg">{capReal.toFixed(0)} pçs/dia</span>
+                         <span className="font-bold text-lg">{isFinite(capReal) ? capReal.toFixed(0) : '0'} pçs/dia</span>
                      </div>
                      <div className="p-2 border border-gray-200 rounded">
                          <span className="block text-[8px] uppercase font-bold text-gray-400">Perda Diária</span>
