@@ -2,14 +2,28 @@ import React, { useState, useMemo } from 'react';
 import {
   Hand, Grab, Fingerprint, Crosshair, LogOut, Minimize2, RotateCw,
   ArrowDownToLine, Eye, Footprints, ArrowLeft, PlusCircle, LayoutGrid,
-  Search
+  Search, MonitorPlay, Zap
 } from 'lucide-react';
-import { parseCode } from '../utils/mtmLogic';
+import { parseCode, convertUnit } from '../utils/mtmLogic';
 import { Motion, MotionGroup } from '../types/types';
 
 // Wizard Configuration Data
 // Updated with new logic: Weight, Motion in Hand, Eye Travel, Leg Motion, Side Step
 const H_CFG: any = {
+    'PROC': {
+        title: "Processo / Máquina",
+        q: [
+            {l:"Descrição da Operação",t:'s',id:'desc',v:'', p:"Ex: Costura Reta"},
+            {l:"Tempo",t:'r',id:'val',min:0,max:1000,v:10,step:0.1},
+            {l:"Unidade",t:'c',id:'unit',o:[
+                {v:'sec',t:'Segundos',s:'s'},
+                {v:'min',t:'Minutos',s:'min'},
+                {v:'cmin',t:'Cent. Min',s:'cmin'},
+                {v:'tmu',t:'TMU',s:'tmu'}
+            ]}
+        ],
+        g: (v:any) => `PROC` // Placeholder code
+    },
     'R': {
         title:"Mover Mão (Reach)",
         q:[
@@ -207,7 +221,20 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
         } catch(e) { return ''; }
     }, [category, params, viewMode]);
 
-    const preview = useMemo(() => parseCode(generatedCode), [generatedCode]);
+    const preview = useMemo(() => {
+        if (category === 'PROC') {
+            const val = parseFloat(params['val'] || '0');
+            const unit = params['unit'] || 'sec';
+            const desc = params['desc'] || 'Processo Manual';
+            return {
+                v: true,
+                t: convertUnit(val, unit as any),
+                d: desc,
+                type: 'process'
+            };
+        }
+        return parseCode(generatedCode);
+    }, [generatedCode, category, params]);
 
     const handleSelectCategory = (c: string) => {
         setCategory(c);
@@ -218,14 +245,27 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
     const handleAdd = () => {
         if (preview.v) {
             const finalHand = category === 'B' ? 'C' : wizHand;
-            onAdd({
-                code: generatedCode,
-                tmu: preview.t,
-                desc: preview.d,
-                freq: wizFreq,
-                hand: finalHand,
-                type: 'mtm'
-            });
+            if (category === 'PROC') {
+                 onAdd({
+                    code: 'PROC',
+                    tmu: preview.t,
+                    desc: preview.d,
+                    freq: wizFreq,
+                    hand: 'C',
+                    type: 'process',
+                    unit: params['unit'] || 'sec',
+                    val: parseFloat(params['val'] || '0')
+                });
+            } else {
+                onAdd({
+                    code: generatedCode,
+                    tmu: preview.t,
+                    desc: preview.d,
+                    freq: wizFreq,
+                    hand: finalHand,
+                    type: 'mtm'
+                });
+            }
             setCategory(null);
             setWizFreq(1);
         }
@@ -303,6 +343,7 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
 
                 <div className="p-4 grid grid-cols-2 gap-3 overflow-y-auto">
                     {[
+                        { id: 'PROC', label: 'Processo', sub: 'Máquina/Manual', icon: <Zap size={20}/>, color: 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-400' },
                         { id: 'R', label: 'Mão Vazia', sub: 'Alcançar', icon: <Hand size={20}/>, color: 'text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400' },
                         { id: 'M', label: 'Mover Objeto', sub: 'Carregar', icon: <Grab size={20}/>, color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/30 dark:text-orange-400' },
                         { id: 'G', label: 'Pegar', sub: 'Grasp', icon: <Fingerprint size={20}/>, color: 'text-purple-600 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-400' },
@@ -341,7 +382,7 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
                      // Check conditions
                      if (q.if && !q.if(params)) return null;
 
-                     const currentVal = params[q.id] !== undefined ? params[q.id] : (q.t === 'r' ? q.v : q.o[0].v);
+                     const currentVal = params[q.id] !== undefined ? params[q.id] : (q.t === 'r' ? q.v : (q.t === 's' ? q.v : q.o[0].v));
 
                      return (
                          <div key={i} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -351,11 +392,20 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
                                  <div>
                                      <div className="flex justify-between mb-2 text-sm font-bold text-red-600 dark:text-red-400">{currentVal}</div>
                                      <input
-                                        type="range" min={q.min} max={q.max} value={currentVal}
-                                        onChange={(e) => setParams({...params, [q.id]: parseInt(e.target.value)})}
-                                        className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg accent-red-600 cursor-pointer"
+                                        type="number" step={q.step || 1} min={q.min} max={q.max} value={currentVal}
+                                        onChange={(e) => setParams({...params, [q.id]: parseFloat(e.target.value)})}
+                                        className="w-full bg-slate-200 dark:bg-slate-700 rounded-lg p-2 outline-none focus:ring-2 ring-red-500"
                                      />
                                  </div>
+                             ) : q.t === 's' ? (
+                                <div>
+                                    <input
+                                        type="text" value={currentVal}
+                                        onChange={(e) => setParams({...params, [q.id]: e.target.value})}
+                                        placeholder={q.p || ''}
+                                        className="w-full bg-slate-200 dark:bg-slate-700 rounded-lg p-2 outline-none focus:ring-2 ring-red-500 text-sm"
+                                     />
+                                </div>
                              ) : (
                                  <div className="grid grid-cols-2 gap-2">
                                      {q.o.map((opt: any) => {
@@ -393,7 +443,7 @@ export const Wizard: React.FC<WizardProps> = ({ onAdd, groups }) => {
                     </div>
 
                     <div className="flex items-center gap-2 mt-3">
-                        {category !== 'B' && (
+                        {category !== 'B' && category !== 'PROC' && (
                             <div className="flex rounded-lg overflow-hidden border border-slate-700 bg-slate-800 shrink-0">
                                 <button onClick={() => setWizHand('E')} className={`w-8 h-10 flex items-center justify-center text-xs font-bold transition-colors ${wizHand === 'E' ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>E</button>
                                 <button onClick={() => setWizHand('D')} className={`w-8 h-10 flex items-center justify-center text-xs font-bold transition-colors border-l border-slate-700 ${wizHand === 'D' ? 'bg-red-600 text-white' : 'text-slate-400 hover:bg-slate-700'}`}>D</button>
