@@ -8,7 +8,7 @@ import {
   Menu, PanelRightClose, PanelRightOpen, Scissors, ChevronUp,
   ChevronDown, BookOpen, Target, Scale, HelpCircle as HelpIcon,
   MonitorPlay, Moon, Sun, Award, FileText, Activity, Download, Upload, FileSpreadsheet,
-  FolderOpen, Zap
+  FolderOpen, Zap, Search
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -18,7 +18,7 @@ import { GoogleGenAI } from "@google/genai";
 import { parseCode, REACH_BASE, MOVE_BASE, STAT, POS_DATA, TURN_DATA, DIS_DATA } from './utils/mtmLogic';
 import { analyzeErgonomics } from './utils/ergonomics';
 import type { Study, Motion, MotionGroup } from './types/types';
-import { Simulation } from './components/Simulation';
+import { DetailedAnalysis } from './components/DetailedAnalysis'; // Updated Import
 import MTMReferenceTable from './components/MTMReferenceTable';
 import { MotionGroupManager } from './components/MotionGroupManager';
 import { Editor } from './components/Editor';
@@ -105,7 +105,7 @@ export default function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   const handleCreateNew = () => {
-    const newStudy: Study = { id: Date.now().toString(), title: "Nova Análise", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.50, volume: 100, invest: 0, daysPerMonth: 22, minutesPerHour: 60, targetIncreasePct: 10 }, updatedAt: Date.now() };
+    const newStudy: Study = { id: Date.now().toString(), title: "Nova Análise", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.688, volume: 1000, invest: 0, daysPerMonth: 22, minutesPerHour: 60, targetIncreasePct: 10 }, updatedAt: Date.now() };
     setStudies([newStudy, ...studies]); setCurrentId(newStudy.id); setEditorData(newStudy); setView('editor'); setActiveTab('current');
   };
   const handleOpenStudy = (id: string) => { const s = studies.find(x => x.id === id); if (s) { setCurrentId(id); setEditorData(JSON.parse(JSON.stringify(s))); setView('editor'); setActiveTab('current'); } };
@@ -186,7 +186,7 @@ export default function App() {
           tolerance: 0,
           currentMotions: [],
           proposedMotions: [],
-          roi: { costMin: 0, volume: 0, invest: 0 },
+          roi: { costMin: 0.688, volume: 1000, invest: 0, daysPerMonth: 22, minutesPerHour: 60 },
           updatedAt: Date.now()
       };
       setEditorData(sandboxStudy);
@@ -274,7 +274,7 @@ export default function App() {
         )}
 
         {view === 'simulation' && editorData && (
-            <Simulation study={editorData} onUpdateStudy={(updated) => { setEditorData(updated); if(view !== 'sandbox') handleSaveEditor(updated); }} onBack={() => setView(view === 'sandbox' ? 'sandbox' : 'editor')} />
+            <DetailedAnalysis study={editorData} onUpdateStudy={(updated) => { setEditorData(updated); if(view !== 'sandbox') handleSaveEditor(updated); }} onBack={() => setView(view === 'sandbox' ? 'sandbox' : 'editor')} />
         )}
 
         {view === 'groupManager' && (
