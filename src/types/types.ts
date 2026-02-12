@@ -44,3 +44,13 @@ export interface Study {
   observedTime?: number; // Tempo Cronometrado (min)
   shiftMinutes?: number; // Jornada (min)
 }
+
+// Process Model (Line Balancing / Grouping)
+export interface ProcessModel {
+    id: string;
+    title: string;
+    description?: string;
+    studyIds: string[]; // List of SingleStudy IDs included
+    updatedAt: number;
+    targetCycleTime?: number; // Optional target (Takt Time)
+}

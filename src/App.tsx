@@ -20,8 +20,10 @@ import { analyzeErgonomics } from './utils/ergonomics';
 import type { Study, Motion, MotionGroup } from './types/types';
 import MTMReferenceTable from './components/MTMReferenceTable';
 import { MotionGroupManager } from './components/MotionGroupManager';
+import { ModelManager } from './components/ModelManager';
 import { Editor } from './components/Editor';
 import { SingleStudy } from './components/SingleStudy';
+import { ProcessModel } from './types/types';
 
 const TutorialOverlay = ({ onClose }: { onClose: () => void }) => (
   <div className="fixed inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300 overflow-y-auto print:hidden">
@@ -60,9 +62,10 @@ const ConfirmModal = ({ isOpen, onConfirm, onCancel, message }: { isOpen: boolea
 };
 
 export default function App() {
-  const [view, setView] = useState<'dashboard' | 'editor' | 'single' | 'simulation' | 'groupManager' | 'sandbox'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'editor' | 'single' | 'simulation' | 'groupManager' | 'modelManager' | 'sandbox'>('dashboard');
   const [studies, setStudies] = useState<Study[]>([]);
   const [motionGroups, setMotionGroups] = useState<MotionGroup[]>([]);
+  const [models, setModels] = useState<ProcessModel[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [dashView, setDashView] = useState<'list' | 'reference'>('list');
@@ -84,13 +87,16 @@ export default function App() {
   useEffect(() => {
       const saved = localStorage.getItem('tmu_pro_data');
       const savedGroups = localStorage.getItem('tmu_pro_groups');
+      const savedModels = localStorage.getItem('tmu_pro_models');
       if (saved) setStudies(JSON.parse(saved)); else setShowTutorial(true);
       if (savedGroups) setMotionGroups(JSON.parse(savedGroups));
+      if (savedModels) setModels(JSON.parse(savedModels));
       if (window.innerWidth < 1024) setWizardOpen(false);
   }, []);
 
   useEffect(() => { localStorage.setItem('tmu_pro_data', JSON.stringify(studies)); }, [studies]);
   useEffect(() => { localStorage.setItem('tmu_pro_groups', JSON.stringify(motionGroups)); }, [motionGroups]);
+  useEffect(() => { localStorage.setItem('tmu_pro_models', JSON.stringify(models)); }, [models]);
 
   useEffect(() => {
     if (darkMode) {
@@ -219,6 +225,7 @@ export default function App() {
                         <button onClick={() => setDashView('list')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'list' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} /> Dashboard</button>
                          <button onClick={() => setDashView('reference')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all ${dashView === 'reference' ? 'bg-slate-100 dark:bg-slate-800 text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><BookOpen size={20} /> Tabela MTM-1</button>
                          <button onClick={() => setView('groupManager')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800`}><FolderOpen size={20} /> Operações Padrão</button>
+                         <button onClick={() => setView('modelManager')} className={`w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl font-bold transition-all text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800`}><Target size={20} /> Modelos de Processo</button>
                         <button onClick={handleCreateNew} className="w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-600/20 mt-4"><Plus size={20} /> Comparar Métodos</button>
                         <button onClick={() => {
                             const newStudy: Study = { id: Date.now().toString(), type: 'single', title: "Novo Estudo Individual", tolerance: 8, currentMotions: [], proposedMotions: [], roi: { costMin: 0.50, volume: 1000, invest: 0 }, updatedAt: Date.now() };
@@ -238,7 +245,7 @@ export default function App() {
                         <button onClick={() => setShowTutorial(true)} className="flex items-center justify-start gap-2 text-slate-400 hover:text-red-500 text-sm font-medium transition-colors"><HelpCircle size={18} /> Ajuda</button>
                     </div>
                 </aside>
-                <main className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8 flex flex-col">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 lg:pb-8 flex flex-col h-full">
                     {dashView === 'list' ? (
                         <>
                             <header className="mb-8 flex flex-col sm:flex-row justify-between sm:items-end gap-4 shrink-0">
@@ -246,20 +253,22 @@ export default function App() {
                                 <div className="text-left sm:text-right bg-white dark:bg-slate-900 sm:bg-transparent p-4 sm:p-0 rounded-xl border sm:border-none border-slate-100 dark:border-slate-800 shadow-sm sm:shadow-none"><p className="text-sm font-bold text-slate-400 uppercase">Economia Total (Mês)</p><p className="text-2xl font-bold text-emerald-600">{totalSavings.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p></div>
                             </header>
 
-                            {/* Sandbox Link */}
-                            <div className="mb-8">
-                                <button onClick={handleOpenSandbox} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-2xl shadow-lg text-white text-left relative overflow-hidden group">
-                                    <Zap className="absolute right-6 top-1/2 -translate-y-1/2 w-24 h-24 text-white opacity-20 group-hover:scale-110 transition-transform"/>
-                                    <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><MonitorPlay/> Simulador Rápido</h3>
-                                    <p className="text-purple-100 max-w-xl">Acesse o editor para cálculos rápidos sem salvar no banco de dados. Ideal para testes e orçamentos.</p>
-                                </button>
-                            </div>
+                            <div className="flex-1 overflow-y-auto">
+                                {/* Sandbox Link */}
+                                <div className="mb-8">
+                                    <button onClick={handleOpenSandbox} className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 p-6 rounded-2xl shadow-lg text-white text-left relative overflow-hidden group">
+                                        <Zap className="absolute right-6 top-1/2 -translate-y-1/2 w-24 h-24 text-white opacity-20 group-hover:scale-110 transition-transform"/>
+                                        <h3 className="text-xl font-bold mb-2 flex items-center gap-2"><MonitorPlay/> Simulador Rápido</h3>
+                                        <p className="text-purple-100 max-w-xl">Acesse o editor para cálculos rápidos sem salvar no banco de dados. Ideal para testes e orçamentos.</p>
+                                    </button>
+                                </div>
 
-                            {studies.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-80 sm:h-96 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed text-center p-6"><div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-full mb-4"><LayoutDashboard className="w-12 h-12 text-slate-300 dark:text-slate-600" /></div><h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Nenhum estudo encontrado</h3><button onClick={handleCreateNew} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors mt-4">Criar Estudo</button></div>
-                            ) : (
-                                <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden"><div className="overflow-x-auto"><table className="w-full text-left min-w-[600px]"><thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800 text-xs uppercase text-slate-400 font-bold"><tr><th className="px-6 py-4">Título</th><th className="px-6 py-4 text-center">Data</th><th className="px-6 py-4 text-center">Atual (min)</th><th className="px-6 py-4 text-center">Proposto (min)</th><th className="px-6 py-4 text-center">Ganho</th><th className="px-6 py-4 text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{studies.map(study => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const c = calc(study.currentMotions); const p = calc(study.proposedMotions); const gain = c > 0 ? ((c - p) / c) * 100 : 0; return (<tr key={study.id} onClick={() => handleOpenStudy(study.id)} className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"><td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{study.title}</td><td className="px-6 py-4 text-center text-slate-500 dark:text-slate-400 text-sm">{new Date(study.updatedAt).toLocaleDateString()}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{c.toFixed(3)}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{p.toFixed(3)}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${gain > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{gain > 0 ? `-${gain.toFixed(1)}%` : '-'}</span></td><td className="px-6 py-4 text-right"><button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(study.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button></td></tr>); })}</tbody></table></div></div>
-                            )}
+                                {studies.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center h-80 sm:h-96 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 border-dashed text-center p-6"><div className="bg-slate-50 dark:bg-slate-800 p-6 rounded-full mb-4"><LayoutDashboard className="w-12 h-12 text-slate-300 dark:text-slate-600" /></div><h3 className="text-xl font-bold text-slate-700 dark:text-slate-200">Nenhum estudo encontrado</h3><button onClick={handleCreateNew} className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors mt-4">Criar Estudo</button></div>
+                                ) : (
+                                    <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-8"><div className="overflow-x-auto"><table className="w-full text-left min-w-[600px]"><thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800 text-xs uppercase text-slate-400 font-bold"><tr><th className="px-6 py-4">Título</th><th className="px-6 py-4 text-center">Data</th><th className="px-6 py-4 text-center">Atual (min)</th><th className="px-6 py-4 text-center">Proposto (min)</th><th className="px-6 py-4 text-center">Ganho</th><th className="px-6 py-4 text-right">Ações</th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-slate-800">{studies.map(study => { const factor = 1 + (study.tolerance / 100); const calc = (m: Motion[]) => m.reduce((s, x) => s + (x.tmu * (x.freq || 1)), 0) * 0.0006 * factor; const c = calc(study.currentMotions); const p = calc(study.proposedMotions); const gain = c > 0 ? ((c - p) / c) * 100 : 0; return (<tr key={study.id} onClick={() => handleOpenStudy(study.id)} className="hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"><td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{study.title}</td><td className="px-6 py-4 text-center text-slate-500 dark:text-slate-400 text-sm">{new Date(study.updatedAt).toLocaleDateString()}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{c.toFixed(3)}</td><td className="px-6 py-4 text-center font-mono text-slate-600 dark:text-slate-300">{p.toFixed(3)}</td><td className="px-6 py-4 text-center"><span className={`px-2 py-1 rounded-full text-xs font-bold ${gain > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>{gain > 0 ? `-${gain.toFixed(1)}%` : '-'}</span></td><td className="px-6 py-4 text-right"><button onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(study.id); }} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"><Trash2 size={16} /></button></td></tr>); })}</tbody></table></div></div>
+                                )}
+                            </div>
                         </>
                     ) : ( <MTMReferenceTable /> )}
                 </main>
@@ -301,6 +310,15 @@ export default function App() {
             <MotionGroupManager
                 groups={motionGroups}
                 setGroups={setMotionGroups}
+                onBack={() => setView('dashboard')}
+            />
+        )}
+
+        {view === 'modelManager' && (
+            <ModelManager
+                models={models}
+                setModels={setModels}
+                studies={studies}
                 onBack={() => setView('dashboard')}
             />
         )}

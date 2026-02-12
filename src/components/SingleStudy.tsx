@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import {
-    ArrowLeft, Printer, Settings2, Wand2, Hand, X,
-    Clock, Zap, AlertTriangle, TrendingUp, Target, DollarSign,
-    List, BarChart2, TrendingDown, Info, Dumbbell
+    ArrowLeft, CheckCircle, FileSpreadsheet, Printer, MonitorPlay,
+    Calculator, Settings2, Wand2, Hand, X, Calendar, Clock
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie
-} from 'recharts';
 import { Study, Motion, MotionGroup } from '../types/types';
 import { Wizard } from './Wizard';
 import { MotionCard, ManualInput } from './EditorComponents';
-import { analyzeErgonomics } from '../utils/ergonomics';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 interface SingleStudyProps {
     data: Study;
@@ -27,73 +23,41 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
     data, setData, onSave, onBack,
     wizardOpen, setWizardOpen, motionGroups, onPrint
 }) => {
-    // Tabs state
-    const [activeTab, setActiveTab] = useState<'config' | 'motions' | 'results'>('motions');
+    // We only use 'currentMotions' for Single Study (Observed vs Standard)
+    const [activeTab, setActiveTab] = useState<'motions' | 'results' | 'config'>('motions');
 
-    // Default values if missing - Safe Fallbacks
-    const obsTime = data.observedTime || 0;
-    const shiftMin = data.shiftMinutes || 480; // 8 hours default
-    const costMin = data.roi?.costMin || 0.50;
-    const volume = data.roi?.volume || 1000;
-
-    // Auto-save
     useEffect(() => {
         const t = setTimeout(() => { onSave(data); }, 1000);
         return () => clearTimeout(t);
     }, [data, onSave]);
 
-    // MTM Calculation
+    // Calculations
     const factor = 1 + (data.tolerance / 100);
     const totalTMU = data.currentMotions.reduce((acc, m) => acc + (m.tmu * (m.freq || 1)), 0);
-    const mtmMin = totalTMU * 0.0006 * factor;
+    const stdTimeMin = totalTMU * 0.0006 * factor;
+    const obsTimeMin = data.observedTime || 0;
 
-    // --- KPIs Calculations (Robust Anti-Crash) ---
-    const efficiency = obsTime > 0 ? (mtmMin / obsTime) * 100 : 0;
-    const capMTM = mtmMin > 0 ? shiftMin / mtmMin : 0;
-    const capReal = obsTime > 0 ? shiftMin / obsTime : 0;
-    const lostPieces = Math.max(0, capMTM - capReal); // Daily
-    const capacityGap = lostPieces;
+    // Efficiency Calculation
+    // If Observed Time is provided, calculate Efficiency = Standard / Observed
+    // If Observed < Standard, Efficiency > 100% (Good/Fast) or < 100% (Slow)?
+    // Usually: Efficiency = (Standard Time / Actual Time) * 100
+    const efficiency = obsTimeMin > 0 ? (stdTimeMin / obsTimeMin) * 100 : 0;
 
-    const costMTM = mtmMin * costMin;
-    const costReal = obsTime * costMin;
-    const lossPerPiece = Math.max(0, costReal - costMTM);
-    // Monthly Calculation: Loss per piece * Real Volume * Days
-    // If we assume `volume` is the TARGET/IDEAL per day, maybe we should use capReal for Actual Volume?
-    // Using `volume` input as "Target Production" for standardizing financial scope.
-    // Financial Impact: (Real Cost - MTM Cost) * Volume * Days
-    const daysPerMonth = data.roi?.daysPerMonth || 22;
-    const monthlyFinancialImpact = (costReal - costMTM) * volume * daysPerMonth;
+    // Production Potential
+    // Pieces per Hour (Standard)
+    const pcsPerHourStd = stdTimeMin > 0 ? 60 / stdTimeMin : 0;
+    // Pieces per Hour (Observed)
+    const pcsPerHourObs = obsTimeMin > 0 ? 60 / obsTimeMin : 0;
 
-    const timeDeviation = obsTime - mtmMin;
-
-    // Charts Data
-    const cycleData = [
-        { name: 'Cronometrado', value: parseFloat(obsTime.toFixed(3)), fill: '#64748b' },
-        { name: 'Padrão MTM', value: parseFloat(mtmMin.toFixed(3)), fill: '#10b981' }
-    ];
-
-    const getLimbData = (motions: Motion[]) => {
-        const counts: any = { E: 0, D: 0, C: 0 };
-        motions.forEach(m => {
-            if (counts[m.hand] !== undefined) counts[m.hand] += (m.tmu * (m.freq || 1));
-        });
-        return [
-            { name: 'Mão Esq.', value: counts.E, fill: '#3b82f6' },
-            { name: 'Mão Dir.', value: counts.D, fill: '#ef4444' },
-            { name: 'Corpo', value: counts.C, fill: '#64748b' }
-        ].filter(x => x.value > 0);
-    };
-    const limbData = getLimbData(data.currentMotions);
-
-    // Handlers
     const handleAddMotion = (motion: Motion) => {
-        const newList = [...data.currentMotions, motion];
-        setData({ ...data, currentMotions: newList });
+        setData({ ...data, currentMotions: [...data.currentMotions, motion] });
     };
+
     const handleRemoveMotion = (idx: number) => {
         const newList = data.currentMotions.filter((_, i) => i !== idx);
         setData({ ...data, currentMotions: newList });
     };
+
     const handleMoveMotion = (index: number, direction: 'up' | 'down') => {
         const list = [...data.currentMotions];
         if (direction === 'up' && index > 0) { [list[index], list[index - 1]] = [list[index - 1], list[index]]; }
@@ -101,365 +65,247 @@ export const SingleStudy: React.FC<SingleStudyProps> = ({
         setData({ ...data, currentMotions: list });
     };
 
-    // Update Helpers
-    const updateObsTime = (val: string) => setData({ ...data, observedTime: parseFloat(val) || 0 });
-    const updateRoi = (field: string, val: string) => {
-        const roi = data.roi || { costMin: 0.5, volume: 1000, invest: 0, daysPerMonth: 22 };
-        setData({ ...data, roi: { ...roi, [field]: parseFloat(val) || 0 } });
+    const handleExportCSV = () => {
+        const headers = ["Index", "Code", "Description", "Frequency", "TMU", "Hand", "Unit", "Original Value"];
+        const rows = data.currentMotions.map((m, i) => [
+            i + 1, m.code, m.desc, m.freq, m.tmu, m.hand, m.unit || 'TMU', m.val || ''
+        ]);
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `single_study_${data.title}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
     };
 
-    const TabButton = ({ id, label, icon }: { id: any, label: string, icon: React.ReactNode }) => (
+    const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon?: React.ReactNode, label?: string }) => (
         <button
-            onClick={() => setActiveTab(id)}
-            className={`px-4 py-3 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${activeTab === id ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+          onClick={onClick}
+          className={`px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all whitespace-nowrap ${active ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg' : 'bg-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
         >
-            {icon} {label}
+          {icon} {label}
         </button>
     );
 
     return (
         <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-300 print:overflow-visible relative">
-
-            {/* Header */}
-            <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 print:hidden">
-                <div className="flex items-center justify-between p-4 pb-0">
-                    <div className="flex items-center gap-3 mb-4">
-                        <button onClick={onBack} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><ArrowLeft size={20} className="text-slate-500"/></button>
-                        <div>
-                            <h1 className="text-xl font-bold text-slate-900 dark:text-white leading-none">{data.title || 'Estudo Individual'}</h1>
-                            <p className="text-xs text-slate-500 font-medium">Auditoria de Processo (MTM vs Real)</p>
-                        </div>
-                    </div>
-                    <div className="flex gap-2 mb-4">
-                        <button onClick={onPrint} className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 rounded-lg text-slate-600 dark:text-slate-300 transition-colors"><Printer size={20}/></button>
-                    </div>
+             <header className="h-16 border-b flex items-center justify-between px-3 sm:px-4 z-30 shrink-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 print:hidden">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-hidden">
+                    <button onClick={onBack} className="p-2 rounded-full transition-colors shrink-0 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><ArrowLeft size={20}/></button>
+                    <input
+                        value={data.title}
+                        onChange={(e) => setData({...data, title: e.target.value})}
+                        className="font-bold text-base sm:text-lg bg-transparent border-none p-0 focus:ring-0 w-full outline-none truncate text-slate-800 dark:text-white placeholder-slate-300"
+                        placeholder="Nome do Estudo..."
+                    />
+                    <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded shrink-0"><CheckCircle size={10} className="text-emerald-500"/> Salvo</div>
+                    <div className="hidden sm:flex items-center gap-1 text-[10px] uppercase font-bold text-white bg-blue-600 px-2 py-1 rounded shrink-0">Individual</div>
                 </div>
-
-                {/* Tab Bar */}
-                <div className="flex px-4 gap-4 overflow-x-auto">
-                    <TabButton id="motions" label="Movimentos" icon={<List size={16}/>} />
-                    <TabButton id="results" label="Resultados" icon={<BarChart2 size={16}/>} />
-                    <TabButton id="config" label="Configuração" icon={<Settings2 size={16}/>} />
+                <div className="flex gap-2 shrink-0">
+                    <button onClick={handleExportCSV} className="p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300" title="Exportar CSV"><FileSpreadsheet size={16}/> <span className="hidden sm:inline">CSV</span></button>
+                    <button onClick={onPrint} className="p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"><Printer size={16}/> <span className="hidden sm:inline">Imprimir</span></button>
+                    <button onClick={() => setActiveTab('results')} className="p-2 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 dark:hover:bg-slate-600 text-white"><Calculator size={16}/> <span className="hidden sm:inline">Resultados</span></button>
                 </div>
             </header>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-hidden flex relative">
+            {/* PRINT LAYOUT (Check Sheet Style) */}
+            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-8 text-black font-sans">
+                <div className="border border-black mb-4">
+                    <div className="flex border-b border-black">
+                        <div className="w-1/4 p-2 border-r border-black flex items-center justify-center font-bold text-xl uppercase tracking-widest bg-gray-100">
+                            Check Sheet
+                        </div>
+                        <div className="w-3/4 p-2">
+                             <div className="flex justify-between mb-2">
+                                 <div><span className="text-[10px] font-bold uppercase block text-gray-500">Operação:</span> <span className="font-bold text-lg">{data.title}</span></div>
+                                 <div><span className="text-[10px] font-bold uppercase block text-gray-500">Data:</span> <span className="font-bold">{new Date().toLocaleDateString()}</span></div>
+                             </div>
+                             <div className="flex justify-between">
+                                 <div><span className="text-[10px] font-bold uppercase block text-gray-500">Analista:</span> <span className="font-bold">{data.analyst || 'N/A'}</span></div>
+                                 <div><span className="text-[10px] font-bold uppercase block text-gray-500">Tempo Padrão:</span> <span className="font-bold font-mono text-lg">{stdTimeMin.toFixed(4)} min</span></div>
+                             </div>
+                        </div>
+                    </div>
+                    <div className="flex text-xs text-center font-bold bg-gray-200 border-b border-black">
+                        <div className="w-10 py-1 border-r border-black">#</div>
+                        <div className="w-16 py-1 border-r border-black">Cód</div>
+                        <div className="flex-1 py-1 border-r border-black text-left pl-2">Descrição da Atividade</div>
+                        <div className="w-10 py-1 border-r border-black">Freq</div>
+                        <div className="w-16 py-1 border-r border-black">TMU</div>
+                        <div className="w-16 py-1">Total</div>
+                    </div>
+                    {data.currentMotions.map((m, i) => (
+                        <div key={i} className="flex text-[10px] border-b border-gray-300 break-inside-avoid last:border-b-0">
+                            <div className="w-10 py-1 border-r border-gray-300 text-center font-bold text-gray-500">{i+1}</div>
+                            <div className="w-16 py-1 border-r border-gray-300 text-center font-mono">{m.code}</div>
+                            <div className="flex-1 py-1 border-r border-gray-300 pl-2 truncate">{m.desc}</div>
+                            <div className="w-10 py-1 border-r border-gray-300 text-center">{m.freq}</div>
+                            <div className="w-16 py-1 border-r border-gray-300 text-right pr-2 font-mono">{m.tmu.toFixed(1)}</div>
+                            <div className="w-16 py-1 text-right pr-2 font-mono font-bold">{(m.tmu * (m.freq||1)).toFixed(1)}</div>
+                        </div>
+                    ))}
+                     <div className="flex text-xs font-bold bg-gray-100 border-t border-black">
+                        <div className="flex-1 py-1 text-right pr-2 uppercase">Total TMU:</div>
+                        <div className="w-16 py-1 text-right pr-2">{totalTMU.toFixed(1)}</div>
+                    </div>
+                    <div className="flex text-xs font-bold bg-gray-100 border-t border-gray-300">
+                         <div className="flex-1 py-1 text-right pr-2 uppercase">Tempo Padrão (min):</div>
+                        <div className="w-16 py-1 text-right pr-2">{stdTimeMin.toFixed(4)}</div>
+                    </div>
+                </div>
 
-                {/* A. Config Tab */}
-                {activeTab === 'config' && (
-                    <div className="flex-1 p-6 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800 dark:text-white"><Settings2 className="text-red-600"/> Parâmetros do Estudo</h2>
+                <div className="grid grid-cols-2 gap-4 text-xs border border-black p-2 mt-4 break-inside-avoid">
+                     <div>
+                         <h4 className="font-bold uppercase mb-2 border-b border-gray-300 pb-1">Resultados de Eficiência</h4>
+                         <div className="flex justify-between py-1 border-b border-gray-100"><span>Tempo Observado:</span> <span className="font-mono font-bold">{obsTimeMin.toFixed(4)} min</span></div>
+                         <div className="flex justify-between py-1 border-b border-gray-100"><span>Eficiência Real:</span> <span className="font-mono font-bold">{efficiency.toFixed(1)}%</span></div>
+                         <div className="flex justify-between py-1"><span>Produção (Pçs/h):</span> <span className="font-mono font-bold">{pcsPerHourStd.toFixed(1)}</span></div>
+                     </div>
+                     <div>
+                         <h4 className="font-bold uppercase mb-2 border-b border-gray-300 pb-1">Notas</h4>
+                         <p className="italic text-gray-500">Tolerância aplicada: {data.tolerance}%</p>
+                         <p className="italic text-gray-500 mt-1">Este documento é confidencial e de propriedade exclusiva.</p>
+                     </div>
+                </div>
+            </div>
 
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Título da Operação</label>
-                                        <input value={data.title} onChange={(e) => setData({...data, title: e.target.value})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-bold text-slate-900 dark:text-white" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Analista Responsável</label>
-                                        <input value={data.analyst || ''} onChange={(e) => setData({...data, analyst: e.target.value})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-medium text-slate-900 dark:text-white" placeholder="Nome..." />
-                                    </div>
-                                </div>
+            {/* Main Content */}
+            <div className="flex-1 flex flex-col print:hidden overflow-hidden">
+                <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-start sm:justify-center shrink-0 shadow-sm z-20 overflow-x-auto whitespace-nowrap scrollbar-hide">
+                    <TabButton active={activeTab === 'config'} onClick={() => setActiveTab('config')} icon={<Settings2 size={18}/>} />
+                    <TabButton active={activeTab === 'motions'} onClick={() => setActiveTab('motions')} label="Movimentos (Padrão)" />
+                    <TabButton active={activeTab === 'results'} onClick={() => setActiveTab('results')} label="Resultados & Eficiência" />
+                </div>
 
-                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-2"></div>
-                                <h3 className="font-bold text-slate-700 dark:text-slate-300">Turno & Padrões</h3>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Jornada (min/dia)</label>
-                                        <input type="number" value={shiftMin} onChange={e => setData({...data, shiftMinutes: parseFloat(e.target.value)})} className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 ring-red-500 font-mono font-bold text-slate-900 dark:text-white" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Tolerância (%)</label>
-                                        <div className="flex items-center gap-3">
-                                            <input type="range" min="0" max="30" step="0.5" value={data.tolerance} onChange={(e) => setData({...data, tolerance: parseFloat(e.target.value)})} className="flex-1 h-2 bg-slate-200 rounded-lg accent-red-600 cursor-pointer" />
-                                            <span className="font-mono font-bold text-lg w-12 text-right">{data.tolerance}%</span>
+                <div className="flex-1 flex overflow-hidden relative">
+                    {/* Config Tab */}
+                    {activeTab === 'config' && (
+                        <div className="flex-1 p-4 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="max-w-xl mx-auto bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-slate-800 dark:text-white"><Settings2 className="text-blue-600"/> Configurações do Estudo</h2>
+                                <div className="space-y-6">
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nome do Analista</label><input value={data.analyst || ''} onChange={(e) => setData({...data, analyst: e.target.value})} placeholder="Ex: João Silva" className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 ring-blue-500 font-medium outline-none text-slate-900 dark:text-white" /></div>
+                                    <div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Tolerância (%)</label><div className="flex items-center gap-4"><input type="range" min="0" max="30" step="0.5" value={data.tolerance} onChange={(e) => setData({...data, tolerance: parseFloat(e.target.value)})} className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg accent-blue-600" /><span className="font-mono font-bold text-xl w-16 text-right text-slate-800 dark:text-white">{data.tolerance}%</span></div></div>
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <h4 className="font-bold text-slate-700 dark:text-white mb-4 flex items-center gap-2"><Clock size={16}/> Dados Observados (Cronometragem)</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tempo Médio Observado (min)</label><input type="number" step="0.001" value={obsTimeMin || ''} onChange={(e) => setData({...data, observedTime: parseFloat(e.target.value)})} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg font-mono font-bold" placeholder="0.000"/></div>
+                                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">Jornada de Trabalho (min)</label><input type="number" value={data.shiftMinutes || 480} onChange={(e) => setData({...data, shiftMinutes: parseFloat(e.target.value)})} className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg font-mono font-bold" /></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* B. Motions Tab */}
-                {activeTab === 'motions' && (
-                    <div className="flex-1 flex overflow-hidden">
-                        <div className="flex-1 flex flex-col relative bg-slate-50/50 dark:bg-slate-900/50">
-                            {/* Summary Bar */}
-                            <div className="bg-white dark:bg-slate-900 px-6 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10">
-                                <div className="flex gap-6 text-sm font-medium">
-                                    <div className="flex items-baseline gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400 uppercase text-xs font-bold">Total MTM</span>
-                                        <strong className="text-2xl text-slate-900 dark:text-white font-mono">{mtmMin.toFixed(4)} <span className="text-xs font-sans text-slate-400">min</span></strong>
+                    {/* Motions Tab (Editor Style) */}
+                    {activeTab === 'motions' && (
+                        <>
+                             <div className="flex-1 flex flex-col relative bg-slate-50/50 dark:bg-slate-900/50">
+                                <div className="bg-white dark:bg-slate-900 px-4 sm:px-6 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shadow-sm z-10">
+                                    <div className="flex gap-2 sm:gap-4 text-xs font-medium">
+                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 flex flex-col sm:flex-row sm:gap-1"><span>Min (+{data.tolerance}%):</span> <strong className="text-slate-900 dark:text-white">{stdTimeMin.toFixed(4)}</strong></div>
+                                        <div className="px-2 sm:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hidden sm:flex gap-1"><span>TMU Base:</span> <strong className="text-slate-900 dark:text-white">{totalTMU.toFixed(1)}</strong></div>
                                     </div>
-                                    <div className="hidden sm:flex items-baseline gap-2">
-                                        <span className="text-slate-500 dark:text-slate-400 uppercase text-xs font-bold">TMU</span>
-                                        <strong className="text-lg text-slate-700 dark:text-slate-300 font-mono">{totalTMU.toFixed(1)}</strong>
-                                    </div>
+                                    <button onClick={() => setWizardOpen(!wizardOpen)} className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${wizardOpen ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'}`} title="Assistente"><Wand2 size={16}/></button>
                                 </div>
-                                <button onClick={() => setWizardOpen(!wizardOpen)} className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 font-bold text-sm ${wizardOpen ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}>
-                                    <Wand2 size={16}/> Assistente
-                                </button>
-                            </div>
-
-                            {/* List */}
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-32">
-                                <div className="max-w-3xl mx-auto space-y-2">
+                                <div className="flex-1 overflow-y-auto p-2 sm:p-4 pb-48 sm:pb-32">
                                     {data.currentMotions.length === 0 ? (
-                                        <div className="h-64 flex flex-col items-center justify-center opacity-40">
-                                            <Hand size={48} className="mb-4 text-slate-400"/>
-                                            <p className="text-center px-4 text-slate-500 font-medium">Adicione movimentos à sequência para calcular o Padrão.</p>
+                                        <div className="h-full flex flex-col items-center justify-center opacity-40">
+                                            <Hand size={48} className="mb-4 text-slate-400" />
+                                            <p className="text-center px-4 text-slate-500">Adicione movimentos usando a barra abaixo ou o Assistente.</p>
                                         </div>
                                     ) : (
-                                        data.currentMotions.map((m, i) => (
-                                            <MotionCard key={i} motion={m} index={i} onDelete={() => handleRemoveMotion(i)} onMoveUp={() => handleMoveMotion(i, 'up')} onMoveDown={() => handleMoveMotion(i, 'down')}/>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Manual Input */}
-                            <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4 z-20 flex justify-center shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                                <div className="w-full max-w-3xl">
-                                    <ManualInput onAdd={handleAddMotion} />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Wizard Sidebar */}
-                        <div className={`${wizardOpen ? 'w-80 lg:w-96 border-l' : 'w-0 opacity-0 pointer-events-none'} transition-all duration-300 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 flex flex-col shadow-xl z-30`}>
-                            <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
-                                <h3 className="font-bold text-slate-700 dark:text-white flex items-center gap-2"><Wand2 size={16} className="text-red-600"/> Assistente</h3>
-                                <button onClick={() => setWizardOpen(false)}><X size={20} className="text-slate-400 hover:text-red-500"/></button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                <Wizard onAdd={handleAddMotion} groups={motionGroups} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* C. Results Tab (Redesigned & Safe) */}
-                {activeTab === 'results' && (
-                    <div className="flex-1 p-6 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300 bg-slate-50 dark:bg-slate-950">
-                        <div className="max-w-7xl mx-auto space-y-8">
-
-                            {/* 1. Active Parameter Bar */}
-                            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400">
-                                            <Settings2Icon />
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Parâmetros de Auditoria</h3>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">Edite os valores reais para análise.</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-wrap gap-4 w-full md:w-auto">
-                                        <InputGroup label="Tempo Cronometrado (min)" value={obsTime} onChange={updateObsTime} icon={<Clock size={14}/>} />
-                                        <InputGroup label="Custo Minuto (R$)" value={costMin} onChange={v => updateRoi('costMin', v)} icon={<DollarSign size={14}/>} />
-                                        <InputGroup label="Produção Alvo (Pçs/Dia)" value={volume} onChange={v => updateRoi('volume', v)} icon={<Target size={14}/>} />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 2. KPI Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <KPICard
-                                    title="Eficiência Global"
-                                    value={`${efficiency.toFixed(1)}%`}
-                                    sub={efficiency >= 100 ? 'Performance Aprovada' : 'Abaixo do Padrão'}
-                                    icon={<Zap size={24}/>}
-                                    color={efficiency >= 100 ? 'text-emerald-600' : 'text-red-600'}
-                                    bg={efficiency >= 100 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}
-                                />
-                                <KPICard
-                                    title="Impacto Mensal"
-                                    value={`R$ ${Math.abs(monthlyFinancialImpact).toLocaleString('pt-BR', {minimumFractionDigits: 2})}`}
-                                    sub={monthlyFinancialImpact > 0 ? 'Desperdício Estimado' : 'Economia Gerada'}
-                                    icon={<DollarSign size={24}/>}
-                                    color={monthlyFinancialImpact > 0 ? 'text-red-600' : 'text-emerald-600'}
-                                    bg={monthlyFinancialImpact > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-emerald-50 dark:bg-emerald-900/20'}
-                                />
-                                <KPICard
-                                    title="Desvio de Tempo"
-                                    value={`${timeDeviation > 0 ? '+' : ''}${timeDeviation.toFixed(3)} min`}
-                                    sub="Diferença Real vs MTM"
-                                    icon={<Clock size={24}/>}
-                                    color={timeDeviation > 0 ? 'text-red-500' : 'text-emerald-500'}
-                                    bg="bg-slate-100 dark:bg-slate-800"
-                                />
-                                <KPICard
-                                    title="Gap Capacidade"
-                                    value={`${lostPieces > 0 ? '-' : '+'}${Math.abs(lostPieces).toFixed(0)} pçs`}
-                                    sub="Potencial Diário Perdido"
-                                    icon={<Target size={24}/>}
-                                    color={lostPieces > 0 ? 'text-orange-500' : 'text-blue-500'}
-                                    bg="bg-slate-100 dark:bg-slate-800"
-                                />
-                            </div>
-
-                            {/* 3. Charts */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Bar Chart */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80">
-                                    <h4 className="text-sm font-bold text-slate-500 uppercase mb-6 flex items-center gap-2">
-                                        <BarChart2 size={16}/> Comparativo Real vs Padrão
-                                    </h4>
-                                    <div className="flex-1 w-full min-h-0">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={cycleData} margin={{top: 20, right: 30, left: 0, bottom: 5}}>
-                                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                                <Tooltip
-                                                    cursor={{fill: 'transparent'}}
-                                                    contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}}
-                                                />
-                                                <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60}>
-                                                    {cycleData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
-                                {/* Pie Chart */}
-                                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col h-80">
-                                    <h4 className="text-sm font-bold text-slate-500 uppercase mb-6 flex items-center gap-2">
-                                        <Hand size={16}/> Distribuição de Esforço
-                                    </h4>
-                                    <div className="flex-1 w-full min-h-0 flex items-center">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={limbData}
-                                                    dataKey="value"
-                                                    nameKey="name"
-                                                    cx="50%" cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                >
-                                                    {limbData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                                </Pie>
-                                                <Tooltip contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                        <div className="flex flex-col gap-2 ml-4">
-                                            {limbData.map((d, i) => (
-                                                <div key={i} className="flex items-center gap-2 text-xs">
-                                                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: d.fill}}></div>
-                                                    <span className="text-slate-600 dark:text-slate-400">{d.name}</span>
-                                                </div>
+                                        <div className="max-w-3xl mx-auto space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                            {data.currentMotions.map((m, i) => (
+                                                <MotionCard key={i} motion={m} index={i} onDelete={() => handleRemoveMotion(i)} onMoveUp={() => handleMoveMotion(i, 'up')} onMoveDown={() => handleMoveMotion(i, 'down')}/>
                                             ))}
                                         </div>
+                                    )}
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-3 sm:p-4 z-20 flex justify-center shadow-sm">
+                                    <div className="w-full max-w-3xl">
+                                        <ManualInput onAdd={handleAddMotion} />
                                     </div>
                                 </div>
                             </div>
+                            <div className={`${wizardOpen ? 'fixed inset-0 lg:relative lg:inset-auto z-50 lg:z-auto w-full lg:w-96 translate-x-0' : 'w-0 translate-x-full lg:translate-x-0 lg:w-0 lg:opacity-0 lg:pointer-events-none fixed right-0'} transition-all duration-300 bg-white dark:bg-slate-900 ${wizardOpen ? 'border-l border-slate-200 dark:border-slate-800' : 'border-none'} flex flex-col shadow-2xl lg:shadow-none`}>
+                                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
+                                    <h3 className="font-bold text-slate-700 dark:text-white flex items-center gap-2"><Wand2 size={16} className="text-blue-600"/> Assistente Visual</h3>
+                                    <button onClick={() => setWizardOpen(false)} className="lg:hidden p-2 bg-slate-200 dark:bg-slate-800 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-white"><X size={20}/></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto">
+                                    <Wizard onAdd={handleAddMotion} groups={motionGroups} />
+                                </div>
+                            </div>
+                        </>
+                    )}
 
+                    {/* Results Tab */}
+                    {activeTab === 'results' && (
+                        <div className="flex-1 p-4 sm:p-8 overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+                             <div className="max-w-4xl mx-auto space-y-6">
+                                {/* Header Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10"><Clock size={64}/></div>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Padrão (Calculado)</h3>
+                                        <div className="text-3xl font-bold text-slate-800 dark:text-white">{stdTimeMin.toFixed(4)} <span className="text-sm font-medium text-slate-500">min</span></div>
+                                        <div className="text-xs font-mono text-slate-400 mt-1">{totalTMU.toFixed(1)} TMU (+{data.tolerance}%)</div>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-4 opacity-10"><MonitorPlay size={64}/></div>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Tempo Observado (Real)</h3>
+                                        <div className="text-3xl font-bold text-slate-800 dark:text-white">{obsTimeMin > 0 ? obsTimeMin.toFixed(4) : '-'} <span className="text-sm font-medium text-slate-500">min</span></div>
+                                        <div className="text-xs text-slate-400 mt-1">{obsTimeMin > 0 ? 'Cronometragem manual' : 'Não informado'}</div>
+                                    </div>
+                                    <div className={`p-6 rounded-2xl border shadow-sm relative overflow-hidden ${efficiency >= 100 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800' : (efficiency > 0 ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800')}`}>
+                                        <div className="absolute top-0 right-0 p-4 opacity-10"><CheckCircle size={64}/></div>
+                                        <h3 className="text-xs font-bold text-slate-400 uppercase mb-2">Eficiência Operacional</h3>
+                                        <div className={`text-3xl font-bold ${efficiency >= 100 ? 'text-emerald-600 dark:text-emerald-400' : (efficiency > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white')}`}>{efficiency > 0 ? efficiency.toFixed(1) : '-'} <span className="text-sm font-medium">%</span></div>
+                                        <div className="text-xs text-slate-400 mt-1">Meta: 100%</div>
+                                    </div>
+                                </div>
+
+                                {/* Comparison Chart */}
+                                {obsTimeMin > 0 && (
+                                    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                        <h3 className="font-bold text-slate-800 dark:text-white mb-6">Comparativo: Padrão vs Observado</h3>
+                                        <div className="h-64 w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={[
+                                                    { name: 'Padrão (MTM)', val: stdTimeMin, fill: '#3b82f6' }, // Blue
+                                                    { name: 'Observado', val: obsTimeMin, fill: '#ef4444' } // Red
+                                                ]} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.2} />
+                                                    <XAxis type="number" unit=" min" />
+                                                    <YAxis dataKey="name" type="category" width={100} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                                    <Tooltip
+                                                        cursor={{fill: 'transparent'}}
+                                                        contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#fff' }}
+                                                    />
+                                                    <Bar dataKey="val" radius={[0, 4, 4, 0]}>
+                                                        {
+                                                            [
+                                                                { name: 'Padrão (MTM)', val: stdTimeMin, fill: '#3b82f6' },
+                                                                { name: 'Observado', val: obsTimeMin, fill: '#ef4444' }
+                                                            ].map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.fill} />
+                                                            ))
+                                                        }
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                )}
+                             </div>
                         </div>
-                    </div>
-                )}
-
-            </div>
-
-            {/* PRINT TEMPLATE (Check Sheet) - Always available in DOM for window.print() */}
-            <div className="hidden print:block absolute top-0 left-0 w-full h-auto bg-white z-[9999] p-8 text-black font-sans">
-                <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
-                    <div>
-                        <h1 className="text-2xl font-bold uppercase">Folha de Verificação de Processo</h1>
-                        <p className="text-sm text-gray-600">Auditoria de Tempos: Padrão MTM vs Real</p>
-                    </div>
-                    <div className="text-right text-xs">
-                        <p><strong>Data:</strong> {new Date().toLocaleDateString()}</p>
-                        <p><strong>Estudo:</strong> {data.title}</p>
-                    </div>
-                </div>
-
-                <div className="mb-6 grid grid-cols-4 gap-4 border border-gray-300 p-4 rounded text-sm">
-                    <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Analista</span> {data.analyst || '-'}</div>
-                    <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Tempo Crono</span> {obsTime.toFixed(3)} min</div>
-                    <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Tempo MTM</span> {mtmMin.toFixed(3)} min</div>
-                    <div><span className="block font-bold text-gray-500 uppercase text-[10px]">Eficiência</span> {efficiency.toFixed(1)}%</div>
-                </div>
-
-                <table className="w-full text-xs border-collapse">
-                    <thead>
-                        <tr className="border-b border-black">
-                            <th className="py-2 text-left w-10">#</th>
-                            <th className="py-2 text-left w-20">Código</th>
-                            <th className="py-2 text-left">Descrição da Atividade</th>
-                            <th className="py-2 text-center w-16">Freq</th>
-                            <th className="py-2 text-right w-20">TMU</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {data.currentMotions.map((m, i) => (
-                            <tr key={i} className="border-b border-gray-200 break-inside-avoid">
-                                <td className="py-2 font-bold text-gray-500">{i+1}</td>
-                                <td className="py-2 font-mono">{m.code}</td>
-                                <td className="py-2">{m.desc}</td>
-                                <td className="py-2 text-center">{m.freq}</td>
-                                <td className="py-2 text-right font-mono">{(m.tmu * (m.freq||1)).toFixed(1)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div className="mt-8 border-t-2 border-black pt-4 flex justify-between items-center">
-                    <div className="text-xs text-gray-500">TMU Studio Pro • Relatório de Auditoria</div>
-                    <div className="text-right">
-                        <p className="font-bold text-lg">Total MTM: {totalTMU.toFixed(1)} TMU ({mtmMin.toFixed(4)} min)</p>
-                        <p className={`text-sm font-bold ${efficiency < 100 ? 'text-red-600' : 'text-green-600'}`}>
-                            Desvio: {(obsTime - mtmMin).toFixed(3)} min ({efficiency.toFixed(1)}% Efic.)
-                        </p>
-                    </div>
+                    )}
                 </div>
             </div>
-
         </div>
     );
-};
-
-// --- Local Components (To ensure self-containment) ---
-
-const InputGroup = ({ label, value, onChange, icon }: { label: string, value: number, onChange: (val: string) => void, icon: React.ReactNode }) => (
-    <div className="flex flex-col">
-        <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
-            {icon} {label}
-        </label>
-        <input
-            type="number"
-            step="0.001"
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-lg font-mono font-bold text-slate-900 dark:text-white focus:ring-2 ring-blue-500 outline-none w-32 transition-all hover:bg-white dark:hover:bg-slate-700"
-        />
-    </div>
-);
-
-const KPICard = ({ title, value, sub, icon, color, bg }: { title: string, value: string, sub: string, icon: React.ReactNode, color: string, bg: string }) => (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all group">
-        <div className="flex justify-between items-start mb-4">
-            <div className={`p-3 rounded-xl ${bg} ${color} group-hover:scale-110 transition-transform`}>
-                {icon}
-            </div>
-        </div>
-        <div>
-            <p className="text-xs font-bold text-slate-400 uppercase mb-1">{title}</p>
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{value}</h3>
-            <p className={`text-xs font-medium mt-1 ${color} opacity-80`}>{sub}</p>
-        </div>
-    </div>
-);
-
-const Settings2Icon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-);
+}
